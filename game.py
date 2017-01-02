@@ -16,23 +16,40 @@ class Direction(Enum):
 
 class Game:
     def __init__(self, window_size=200, game_size=15):
-        # win = GraphWin(width=window_size, height=window_size)
-        # win.setCoords(-1, -1, game_size, game_size)
-        # win.setBackground("black")
-        # point_width = float(window_size)/(game_size + 1)
-        # walls = Rectangle(Point(0, 0), Point(game_size - 1, game_size - 1))
-        # walls.setWidth(point_width)
-        # walls.setOutline("white")
-        # walls.draw(win)
-        #
-        # self.win = win
+        win = GraphWin(width=window_size, height=window_size)
+        self.win = win
+        win.setCoords(-1, -1, game_size, game_size)
+        win.setBackground("black")
+        self.point_width = float(window_size)/(game_size + 1)
+        walls = Rectangle(Point(0, 0), Point(game_size - 1, game_size - 1))
+        p1 = (0, 0)
+        p2 = (game_size - 1, game_size - 1)
+        self.draw_line(p1, p2, "grey")
+
         self.wall_boundary = game_size - 1
-        # self.pointWidth = point_width
-        # self.walls = walls
+        self.pointWidth = self.point_width
+        self.walls = walls
         self.snake = Snake((int(game_size / 2), int(game_size / 2)))
         self.score = 0
         self.continue_game = True
         self.food = (5, int(game_size/2))
+        self.snake_graphic = deque()
+
+        self.food_graphic = self.draw_line(self.food, self.food, "red")
+        unit = self.draw_line(self.snake.head, self.snake.body[0], "white")
+        self.snake_graphic.append(unit)
+        unit2 = self.draw_line(self.snake.body[0], self.snake.body[1], "white")
+        self.snake_graphic.append(unit2)
+
+    def draw_line(self, p1, p2, color):
+        """Draws line, and returns the Rectangle object. point1 and point2 are tuples."""
+        point1 = Point(p1[0], p1[1])
+        point2 = Point(p2[0], p2[1])
+        rect = Rectangle(point1, point2)
+        rect.setWidth(self.point_width)
+        rect.setOutline(color)
+        rect.draw(self.win)
+        return rect
 
     def step(self):
         """Updates the next food position, snake position, and the graphics for a single time step."""
@@ -41,7 +58,7 @@ class Game:
         snake_head_copy = deepcopy(self.snake.head)
         self.snake.body.appendleft(snake_head_copy)
 
-        # Move snake accordingly
+        # Move snake accordingly.
         if direction == Direction.UP:
             self.snake.head = (snake_head_copy[0], snake_head_copy[1] + 1)
         elif direction == Direction.DOWN:
@@ -51,12 +68,17 @@ class Game:
         elif direction == Direction.RIGHT:
             self.snake.head = (snake_head_copy[0] + 1, snake_head_copy[1])
 
+        unit = self.draw_line(snake_head_copy, deepcopy(self.snake.head), "white")
+        self.snake_graphic.appendleft(unit)
+
         if self.snake.head == self.food:  # Update snake if it ate the food
             self.snake.fitness += 1
             self.snake.head = deepcopy(self.food)
             self.regenerate_food()
         else:
             self.snake.body.pop()
+            end = self.snake_graphic.pop()
+            end.undraw()
         if self.snake.head in self.snake.body or self._coordinate_is_wall(self.snake.head):  # If snake died
             self.continue_game = False
 
@@ -65,6 +87,7 @@ class Game:
                coordinate[1] == self.wall_boundary or coordinate[1] == 0
 
     def regenerate_food(self): # TODO: Might want to speed this up
+        self.food_graphic.undraw()
         if (self.wall_boundary-1)**2 == len(self.snake.body) + 1:
             self.continue_game = False
             return
@@ -74,6 +97,7 @@ class Game:
                 food_y = random.randint(1, self.wall_boundary-1)
                 if (food_x, food_y) != self.snake.head and (food_x, food_y) not in self.snake.body:
                     self.food = (food_x, food_y)
+                    self.food_graphic = self.draw_line(self.food, self.food, "red")
                     break
 
     def retrieve_nn_inputs(self):
@@ -135,7 +159,7 @@ class Snake:
 
     def action(self, inputs):  # Returns LEFT, RIGHT, UP, or DOWN.
         """Returns LEFT, RIGHT, UP, or DOWN. Outputs from neural network."""
-        return Direction.UP  # TODO: Neural network output here
+        return Direction.LEFT  # TODO: Neural network output here
 
 game = Game()
 game.print_status()
@@ -146,9 +170,9 @@ game.print_status()
 game.step()
 game.print_status()
 
-
 game.step()
 game.print_status()
-
-game.step()
-game.print_status()
+#
+# game.step()
+# game.print_status()
+game.win.getMouse()
