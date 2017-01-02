@@ -49,7 +49,7 @@ class Game:
         elif direction == Direction.LEFT:
             self.snake.head = (snake_head_copy[0] - 1, snake_head_copy[1])
         elif direction == Direction.RIGHT:
-            self.snake.head = (snake_head_copy[0] + 1, snake_head_copy[1] + 1)
+            self.snake.head = (snake_head_copy[0] + 1, snake_head_copy[1])
 
         if self.snake.head == self.food:  # Update snake if it ate the food
             self.snake.fitness += 1
@@ -100,13 +100,10 @@ class Snake:
 
     def action(self, inputs):  # Returns LEFT, RIGHT, UP, or DOWN.
         """Returns LEFT, RIGHT, UP, or DOWN. Outputs from neural network."""
-        return Direction.LEFT  # TODO: Neural network output here
+        return Direction.RIGHT  # TODO: Neural network output here
 
 game = Game()
-game.print_status()
-
-game.step()
-game.print_status()
-
-game.step()
-game.print_status()
+continue_status = True
+while continue_status:
+    game.step()
+    continue_status = game.get_continue_status()
