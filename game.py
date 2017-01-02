@@ -26,7 +26,7 @@ class Game:
         # walls.draw(win)
         #
         # self.win = win
-        self.boundary = game_size - 2
+        self.wall_boundary = game_size - 1
         # self.pointWidth = point_width
         # self.walls = walls
         self.snake = Snake((int(game_size / 2), int(game_size / 2)))
@@ -61,20 +61,54 @@ class Game:
             self.continue_game = False
 
     def _coordinate_is_wall(self, coordinate):
-        return coordinate[0] == self.boundary + 1 or coordinate[0] == 0 or \
-               coordinate[1] == self.boundary + 1 or coordinate[1] == 0
+        return coordinate[0] == self.wall_boundary or coordinate[0] == 0 or \
+               coordinate[1] == self.wall_boundary or coordinate[1] == 0
 
     def regenerate_food(self): # TODO: Might want to speed this up
-        if self.boundary**2 == len(self.snake.body) + 1:
+        if (self.wall_boundary-1)**2 == len(self.snake.body) + 1:
             self.continue_game = False
             return
         else:
             while True:
-                food_x = random.randint(1, self.boundary)
-                food_y = random.randint(1, self.boundary)
+                food_x = random.randint(1, self.wall_boundary-1)
+                food_y = random.randint(1, self.wall_boundary-1)
                 if (food_x, food_y) != self.snake.head and (food_x, food_y) not in self.snake.body:
                     self.food = (food_x, food_y)
                     break
+
+    def retrieve_nn_inputs(self):
+        """NN Input:
+        0) x distance to apple: food.x - head.x
+        1) y distance to apple: food.y - head.y
+        2) up: vertical dist to wall or self
+        3) right: horizontal dist to wall or self
+        4) left: horizontal dist to wall or self
+        5) down: vertical dist to wall or self"""
+        nn_input = []
+        head = self.snake.head
+        nn_input.append(self.food[0] - head[0])
+        nn_input.append(self.food[1] - head[1])
+        for i in range(head[1] + 1, self.wall_boundary + 1):
+            test_pt = (head[0], i)
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(i - head[1])
+                break
+        for i in range(head[0] + 1, self.wall_boundary + 1):
+            test_pt = (i, head[1])
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(i - head[0])
+                break
+        for i in range(head[0] - 1, -1, -1):
+            test_pt = (i, head[1])
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(head[0] - i)
+                break
+        for i in range(head[1] - 1, -1, -1):
+            test_pt = (head[0], i)
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(head[1] - i)
+                break
+        return nn_input
 
     def get_score(self):
         return self.score
@@ -84,6 +118,7 @@ class Game:
         for x in self.snake.body:
             print(x, end='')
         print()
+        print(self.retrieve_nn_inputs())
 
     def get_continue_status(self):
         """Returns false if the snake has hit a wall or itself."""
@@ -100,10 +135,20 @@ class Snake:
 
     def action(self, inputs):  # Returns LEFT, RIGHT, UP, or DOWN.
         """Returns LEFT, RIGHT, UP, or DOWN. Outputs from neural network."""
-        return Direction.RIGHT  # TODO: Neural network output here
+        return Direction.UP  # TODO: Neural network output here
 
 game = Game()
-continue_status = True
-while continue_status:
-    game.step()
-    continue_status = game.get_continue_status()
+game.print_status()
+
+game.step()
+game.print_status()
+
+game.step()
+game.print_status()
+
+
+game.step()
+game.print_status()
+
+game.step()
+game.print_status()
