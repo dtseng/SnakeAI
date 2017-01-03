@@ -81,6 +81,7 @@ class Game:
             end.undraw()
         if self.snake.head in self.snake.body or self._coordinate_is_wall(self.snake.head):  # If snake died
             self.continue_game = False
+        self.win.setBackground("black")  # Deals with graphics.py issue with sections of un-drawn objects being visible
 
     def _coordinate_is_wall(self, coordinate):
         return coordinate[0] == self.wall_boundary or coordinate[0] == 0 or \
