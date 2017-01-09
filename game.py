@@ -8,10 +8,10 @@ UP, DOWN, LEFT, RIGHT = range(4)
 
 
 class Direction(Enum):
-    UP = 1
-    DOWN = 2
-    LEFT = 3
-    RIGHT = 4
+    UP = 0
+    DOWN = 1
+    LEFT = 2
+    RIGHT = 3
 
 
 class Game:
@@ -81,7 +81,6 @@ class Game:
             end.undraw()
         if self.snake.head in self.snake.body or self._coordinate_is_wall(self.snake.head):  # If snake died
             self.continue_game = False
-        self.win.setBackground("black")  # Deals with graphics.py issue with sections of un-drawn objects being visible
 
     def _coordinate_is_wall(self, coordinate):
         return coordinate[0] == self.wall_boundary or coordinate[0] == 0 or \
@@ -138,12 +137,12 @@ class Game:
     def get_score(self):
         return self.score
 
-    def print_status(self):
-        print("status:", self.continue_game, "food:", self.food, ".. head:", self.snake.head, "| body:", end='')
-        for x in self.snake.body:
-            print(x, end='')
-        print()
-        print(self.retrieve_nn_inputs())
+    # def print_status(self):
+    #     print("status:", self.continue_game, "food:", self.food, ".. head:", self.snake.head, "| body:", end='')
+    #     for x in self.snake.body:
+    #         print(x, end='')
+    #     print()
+    #     print(self.retrieve_nn_inputs())
 
     def get_continue_status(self):
         """Returns false if the snake has hit a wall or itself."""
@@ -160,19 +159,19 @@ class Snake:
 
     def action(self, inputs):  # Returns LEFT, RIGHT, UP, or DOWN.
         """Returns LEFT, RIGHT, UP, or DOWN. Outputs from neural network."""
-        return Direction.LEFT  # TODO: Neural network output here
+        return Direction.UP  # TODO: Neural network output here
 
 game = Game()
-game.print_status()
+# game.print_status()
 
 game.step()
-game.print_status()
+# game.print_status()
 
 game.step()
-game.print_status()
+# game.print_status()
 
 game.step()
-game.print_status()
+# game.print_status()
 #
 # game.step()
 # game.print_status()
