@@ -18,23 +18,22 @@ class Genome:
     node_innovation_lookup = {}
 
     # Create basic genome given list of inputs and list of outputs
-    def __init__(self, inputs, outputs):
+    def __init__(self, inputs):
         if len(inputs) != parameters.num_inputs:
             print("ERROR: Invalid number of inputs")
-        if len(outputs) != parameters.num_outputs:
-            print("ERROR: Invalid number of outputs")
         inputs = [1] + inputs  # Bias term
         self.nodes = {}  # Maps inn. number to gene object
         self.connections = {}  # Maps inn. number to node object
         for i in inputs:
             self.nodes[Genome.node_innovation] = Node(Genome.node_innovation, i)
             Genome.node_innovation += 1
-        for o in outputs:
+        for o in range(parameters.num_outputs):
             n = Genome.node_innovation
             self.nodes[n] = Node(n)
-            for j in range(0, len(inputs)):
+            for i in range(len(inputs)):
                 weight = np.random.normal(0, parameters.init_weight_std)
-                self.connections[Genome.gene_innovation] = Genome(j, n, weight, Genome.gene_innovation)
+                self.connections[Genome.gene_innovation] = Gene(i, n, weight, Genome.gene_innovation)
+                Genome.gene_innovation_lookup[(i, o)] = Genome.gene_innovation
                 Genome.gene_innovation += 1
             Genome.node_innovation += 1
 
@@ -44,14 +43,16 @@ class Genome:
     def mutate_add_link(self):
         pass
 
-class Node:
-    def __init__(self, innovation):
-        self.number = innovation
-        self.out_value = 0
 
-    def __init__(self, innovation, out_value):
-        self.__init__(innovation)
+class Node:
+    def __init__(self, innovation, out_value=0):
+        self.number = innovation
         self.out_value = out_value
+
+    def __str__(self):
+        return "n: " + str(self.number) + ", o:" + str(self.out_value)
+
+    __repr__ = __str__
 
 class Gene:
     def __init__(self, in_node, out_node, weight, innovation, enable=True):
@@ -61,9 +62,11 @@ class Gene:
         self.weight = weight
         self.enable = enable
 
+    def __str__(self):
+        return "i: " + str(self.in_node) + ", o:" + str(self.out_node) + ", w:" + str(self.weight) \
+               + ", n:" + str(self.innovation)
 
+    __repr__ = __str__
 
-
-
-
-
+inputs = [4, 5, 6]
+g = Genome(inputs)
