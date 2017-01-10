@@ -8,7 +8,7 @@ def sigmoid(x):
 
 
 class Genome:
-    gene_innovation = 0 # Gene innovation number
+    gene_innovation = 0  # Gene innovation number
     node_innovation = 0
     # Keeps track of all connections. Maps (in_node, out_node)
     # to the innovation number of the connection.
@@ -41,8 +41,9 @@ class Genome:
         gene_mutate = self.genes[random.choice(gene_numbers)]
         old_connection = (gene_mutate.in_node, gene_mutate.out_node)
         new_node = self.insert_node(old_connection[0], old_connection[1])
-        self.insert_gene(old_connection[0], new_node, 1)
-        self.insert_gene(new_node, old_connection[1], gene_mutate.weight)
+        self.insert_gene(old_connection[0], new_node.innovation, 1)
+        self.insert_gene(new_node.innovation, old_connection[1], gene_mutate.weight)
+        gene_mutate.enable = False
 
     def insert_gene(self, in_node, out_node, weight, enable=True):
         """Creates a gene, assigns it the correct innovation label, and adds it to the lookup table
@@ -70,37 +71,48 @@ class Genome:
             innovation = Genome.node_innovation
             self.node_innovation_lookup[key] = innovation
             Genome.node_innovation += 1
-        node = Node(innovation)
+        node = Node(innovation, out_value)
         self.nodes[innovation] = node
         return node
 
     def mutate_add_connection(self):
         pass
 
+    def print_debug_info(self):
+        print("gene lookup: ", self.gene_innovation_lookup)
+        print("node lookup: ", self.node_innovation_lookup)
+        print("genes: ", self.genes)
+        print("nodes: ", self.nodes)
+
 
 class Node:
     def __init__(self, innovation, out_value=0):
-        self.number = innovation
+        self.innovation = innovation
         self.out_value = out_value
 
     def __str__(self):
-        return "n: " + str(self.number) + ", o:" + str(self.out_value)
+        return "||n:" + str(self.innovation) + ", o:" + str(self.out_value) + "|| "
 
     __repr__ = __str__
 
+
 class Gene:
     def __init__(self, in_node, out_node, weight, innovation, enable=True):
-        self.innovation = innovation
+        self.number = innovation
         self.in_node = in_node
         self.out_node = out_node
         self.weight = weight
         self.enable = enable
 
     def __str__(self):
-        return "i: " + str(self.in_node) + ", o:" + str(self.out_node) + ", w:" + str(self.weight) \
-               + ", n:" + str(self.innovation)
+        return "||n:" + str(self.number) + ", i: " + str(self.in_node) + ", o:" \
+               + str(self.out_node) + ", w:" + str(self.weight) + ", e:" + str(self.enable) + "|| "
 
     __repr__ = __str__
 
-inputs = [4, 5, 6]
+inputs = [4]
 g = Genome(inputs)
+g.print_debug_info()
+g.mutate_add_node()
+print("===============")
+g.print_debug_info()
