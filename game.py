@@ -86,7 +86,7 @@ class Game:
         return coordinate[0] == self.wall_boundary or coordinate[0] == 0 or \
                coordinate[1] == self.wall_boundary or coordinate[1] == 0
 
-    def regenerate_food(self): # TODO: Might want to speed this up
+    def regenerate_food(self):
         self.food_graphic.undraw()
         if (self.wall_boundary-1)**2 == len(self.snake.body) + 1:
             self.continue_game = False

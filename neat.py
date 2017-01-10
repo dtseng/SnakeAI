@@ -20,23 +20,28 @@ class Genome:
     node_innovation_lookup = {}
 
     # Create basic genome given list of inputs and list of outputs
-    def __init__(self, inputs):  # TODO: Fix this, using the new methods you just created
-        if len(inputs) != parameters.num_inputs:
-            print("ERROR: Invalid number of inputs")
-        inputs = [1] + inputs  # Bias term
+    def __init__(self, nodes=None, genes=None):
+        self.fitness = 0
+        if nodes and genes:
+            self.nodes = nodes
+            self.genes = genes
+            return
+
         self.nodes = {}  # Maps inn. number to gene object
         self.genes = {}  # Maps inn. number to node object
-        for i in inputs:
-            self.nodes[Genome.node_innovation] = Node(Genome.node_innovation, i)
+
+        for _ in range(parameters.num_inputs + 1):  # + 1 because of bias term
+            self.nodes[Genome.node_innovation] = Node(Genome.node_innovation)
             Genome.node_innovation += 1
         for _ in range(parameters.num_outputs):
             o = Genome.node_innovation
             self.nodes[o] = Node(o)
-            for i in range(len(inputs)):
+            for i in range(parameters.num_inputs + 1):
                 self.nodes[i].out_nodes.append(o)
                 weight = np.random.normal(0, parameters.init_weight_std)
                 self.insert_gene(i, o, weight)
             Genome.node_innovation += 1
+
 
     def mutate_add_node(self):
         # Choose an enabled gene to split.
@@ -48,8 +53,8 @@ class Genome:
 
         old_connection = (gene_mutate.in_node, gene_mutate.out_node)
         new_node = self.insert_node(old_connection[0], old_connection[1])
-        self.insert_gene(old_connection[0], new_node.innovation, 1)
-        self.insert_gene(new_node.innovation, old_connection[1], gene_mutate.weight)
+        self.insert_gene(old_connection[0], new_node.number, 1)
+        self.insert_gene(new_node.number, old_connection[1], gene_mutate.weight)
         gene_mutate.enable = False
 
     def insert_gene(self, in_node, out_node, weight, enable=True):
@@ -131,6 +136,9 @@ class Genome:
                     fringe.append(next_node)
         return False
 
+    def mutate_perturb_weight(self):
+        pass  # TODO: Finish this function
+
     def print_debug_info(self):
         print("===========INFO=============")
         print("gene lookup: ", self.gene_innovation_lookup)
@@ -141,12 +149,12 @@ class Genome:
 
 class Node:
     def __init__(self, innovation, out_value=0):
-        self.innovation = innovation
+        self.number = innovation
         self.out_nodes = []
         self.out_value = out_value
 
     def __str__(self):
-        return "||n:" + str(self.innovation) + ", o:" + str(self.out_value) + "|| "
+        return "||n:" + str(self.number) + ", o:" + str(self.out_value) + "|| "
 
     __repr__ = __str__
 
@@ -159,15 +167,60 @@ class Gene:
         self.weight = weight
         self.enable = enable
 
+    def copy(self):
+        return Gene(self.in_node, self.out_node, self.weight, self.number, self.enable)
+
     def __str__(self):
         return "||n:" + str(self.number) + ", i: " + str(self.in_node) + ", o:" \
                + str(self.out_node) + ", w:" + str(self.weight) + ", e:" + str(self.enable) + "|| "
 
     __repr__ = __str__
 
-inputs = []
-g = Genome(inputs)
+
+def crossover(genome1, genome2):
+    genes1 = genome1.genes
+    genes2 = genome2.genes
+    better = max([genome1, genome2], key=lambda x: x.fitness)
+    composite_genes = {}
+    composite_nodes = {}
+
+    largest_innovation_number = max(list(genes1.keys()) + list(genes2.keys()))
+    for i in range(largest_innovation_number):
+        g1 = get_dict_value(i, genes1)
+        g2 = get_dict_value(i, genes2)
+
+        if not (g1 or g2):
+            continue
+        elif g1 and not g2 and better == genome1:
+            gene = g1.copy()
+        elif g2 and not g1 and better == genome2:
+            gene = g2.copy()
+        elif g1 and g2:
+            gene = random.choice([g1, g2]).copy()
+
+        composite_genes[i] = gene
+        # Generate nodes from gene
+        if gene.in_node not in composite_nodes:
+            composite_nodes[gene.in_node] = Node(gene.in_node)
+        composite_nodes[gene.in_node].append(gene.out_node)
+        if gene.out_node not in composite_nodes:
+            composite_nodes[gene.out_noe] = Node(gene.out_node)
+
+    return Genome(composite_nodes, composite_genes)
+
+
+def get_dict_value(val, dict):
+    try:
+        return dict[val]
+    except KeyError:
+        return None
+
+
+
+
+# inputs = []
+# g = Genome(inputs)
 # g.print_debug_info()
-g.mutate_add_node()
-g.mutate_add_connection()
-g.print_debug_info()
+# g.mutate_add_node()
+# g.mutate_add_connection()
+# g.print_debug_info()
