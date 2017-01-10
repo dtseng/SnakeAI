@@ -71,6 +71,7 @@ class Genome:
         """Creates a node, assigns it the correct innovation label, and adds it to the lookup table.
         A new node is only added by splitting a gene. (in_node, out_node) is the same in_node and
         out_node of the gene being split. """
+        # print("out_value", out_value)
         self.nodes[in_node].out_nodes.remove(out_node)
         key = (in_node, out_node)
         if key in self.node_innovation_lookup:
@@ -86,12 +87,36 @@ class Genome:
         return node
 
     def mutate_add_connection(self):
-        pass
+        """Adds a random connection in the neural network such that the result is still
+        a feedforward neural network."""
+        nodes = list(self.nodes.keys())
+
+        for _ in range(min(len(self.nodes), 5)):  # Attempt this several times
+            n1 = random.choice(nodes)
+            n2 = random.choice(nodes)
+
+            if n1 == n2:
+                continue
+
+            # If the proposed connection already exists
+            if (n1, n2) in Genome.gene_innovation_lookup:
+                innovation = Genome.gene_innovation_lookup[(n1, n2)]
+                if innovation in self.genes:
+                    continue
+
+            # If the proposed connection doesn't point to an input node and doesn't create a cycle
+            x = self.will_create_cycle(n1, n2)
+            if n2 >= parameters.num_inputs and not self.will_create_cycle(n1, n2):
+                weight = np.random.normal(0, parameters.init_weight_std)
+                self.insert_gene(n1, n2, weight)
+                return
 
     def will_create_cycle(self, a, b):
         """Tests whether adding the new link (a, b) will create a cycle in the network.
         Assumes that the graph currently contains no cycles (DAG). This can be done
         by running BFS to check if a path from B to A already exists in the current graph. """
+        if a == b:
+            return True
         goal = a
         closed = set()
         fringe = deque()
@@ -107,6 +132,7 @@ class Genome:
         return False
 
     def print_debug_info(self):
+        print("===========INFO=============")
         print("gene lookup: ", self.gene_innovation_lookup)
         print("node lookup: ", self.node_innovation_lookup)
         print("genes: ", self.genes)
@@ -114,9 +140,9 @@ class Genome:
 
 
 class Node:
-    def __init__(self, innovation, out_value=0, out_nodes=[]):
+    def __init__(self, innovation, out_value=0):
         self.innovation = innovation
-        self.out_nodes = out_nodes
+        self.out_nodes = []
         self.out_value = out_value
 
     def __str__(self):
@@ -139,9 +165,9 @@ class Gene:
 
     __repr__ = __str__
 
-inputs = [4]
+inputs = []
 g = Genome(inputs)
-g.print_debug_info()
+# g.print_debug_info()
 g.mutate_add_node()
-print("===============")
+g.mutate_add_connection()
 g.print_debug_info()
