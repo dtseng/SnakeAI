@@ -1,5 +1,6 @@
 import parameters
 import math
+import random
 import numpy as np
 
 def sigmoid(x):
@@ -18,29 +19,62 @@ class Genome:
     node_innovation_lookup = {}
 
     # Create basic genome given list of inputs and list of outputs
-    def __init__(self, inputs):
+    def __init__(self, inputs):  # TODO: Fix this, using the new methods you just created
         if len(inputs) != parameters.num_inputs:
             print("ERROR: Invalid number of inputs")
         inputs = [1] + inputs  # Bias term
         self.nodes = {}  # Maps inn. number to gene object
-        self.connections = {}  # Maps inn. number to node object
+        self.genes = {}  # Maps inn. number to node object
         for i in inputs:
             self.nodes[Genome.node_innovation] = Node(Genome.node_innovation, i)
             Genome.node_innovation += 1
-        for o in range(parameters.num_outputs):
-            n = Genome.node_innovation
-            self.nodes[n] = Node(n)
+        for _ in range(parameters.num_outputs):
+            o = Genome.node_innovation
+            self.nodes[o] = Node(o)
             for i in range(len(inputs)):
                 weight = np.random.normal(0, parameters.init_weight_std)
-                self.connections[Genome.gene_innovation] = Gene(i, n, weight, Genome.gene_innovation)
-                Genome.gene_innovation_lookup[(i, o)] = Genome.gene_innovation
-                Genome.gene_innovation += 1
+                self.insert_gene(i, o, weight)
             Genome.node_innovation += 1
 
     def mutate_add_node(self):
-        pass
+        gene_numbers = list(self.genes.keys())
+        gene_mutate = self.genes[random.choice(gene_numbers)]
+        old_connection = (gene_mutate.in_node, gene_mutate.out_node)
+        new_node = self.insert_node(old_connection[0], old_connection[1])
+        self.insert_gene(old_connection[0], new_node, 1)
+        self.insert_gene(new_node, old_connection[1], gene_mutate.weight)
 
-    def mutate_add_link(self):
+    def insert_gene(self, in_node, out_node, weight, enable=True):
+        """Creates a gene, assigns it the correct innovation label, and adds it to the lookup table
+        if necessary. """
+        connection = (in_node, out_node)
+        if connection in self.gene_innovation_lookup:  # If this gene had been created before
+            innovation = self.gene_innovation_lookup[connection]
+        else:
+            # If this hasn't been created before, then add this creation to the lookup table
+            innovation = Genome.gene_innovation
+            self.gene_innovation_lookup[connection] = innovation
+            Genome.gene_innovation += 1
+        gene = Gene(in_node, out_node, weight, innovation, enable)
+        self.genes[innovation] = gene
+        return gene
+
+    def insert_node(self, in_node, out_node, out_value=0):
+        """Creates a node, assigns it the correct innovation label, and adds it to the lookup table.
+        A new node is only added by splitting a gene. (in_node, out_node) is the same in_node and
+        out_node of the gene being split. """
+        key = (in_node, out_node)
+        if key in self.node_innovation_lookup:
+            innovation = self.node_innovation_lookup[key]
+        else:
+            innovation = Genome.node_innovation
+            self.node_innovation_lookup[key] = innovation
+            Genome.node_innovation += 1
+        node = Node(innovation)
+        self.nodes[innovation] = node
+        return node
+
+    def mutate_add_connection(self):
         pass
 
 
