@@ -2,6 +2,7 @@ import parameters
 import math
 import random
 import numpy as np
+from collections import deque
 
 def sigmoid(x):
     return 1/(1 + math.exp(-4.9*x))
@@ -32,13 +33,19 @@ class Genome:
             o = Genome.node_innovation
             self.nodes[o] = Node(o)
             for i in range(len(inputs)):
+                self.nodes[i].out_nodes.append(o)
                 weight = np.random.normal(0, parameters.init_weight_std)
                 self.insert_gene(i, o, weight)
             Genome.node_innovation += 1
 
     def mutate_add_node(self):
-        gene_numbers = list(self.genes.keys())
-        gene_mutate = self.genes[random.choice(gene_numbers)]
+        # Choose an enabled gene to split.
+        while True:
+            gene_numbers = list(self.genes.keys())
+            gene_mutate = self.genes[random.choice(gene_numbers)]
+            if gene_mutate.enable:
+                break
+
         old_connection = (gene_mutate.in_node, gene_mutate.out_node)
         new_node = self.insert_node(old_connection[0], old_connection[1])
         self.insert_gene(old_connection[0], new_node.innovation, 1)
@@ -64,6 +71,7 @@ class Genome:
         """Creates a node, assigns it the correct innovation label, and adds it to the lookup table.
         A new node is only added by splitting a gene. (in_node, out_node) is the same in_node and
         out_node of the gene being split. """
+        self.nodes[in_node].out_nodes.remove(out_node)
         key = (in_node, out_node)
         if key in self.node_innovation_lookup:
             innovation = self.node_innovation_lookup[key]
@@ -71,12 +79,32 @@ class Genome:
             innovation = Genome.node_innovation
             self.node_innovation_lookup[key] = innovation
             Genome.node_innovation += 1
+        self.nodes[in_node].out_nodes.append(innovation)
         node = Node(innovation, out_value)
+        node.out_nodes.append(out_node)
         self.nodes[innovation] = node
         return node
 
     def mutate_add_connection(self):
         pass
+
+    def will_create_cycle(self, a, b):
+        """Tests whether adding the new link (a, b) will create a cycle in the network.
+        Assumes that the graph currently contains no cycles (DAG). This can be done
+        by running BFS to check if a path from B to A already exists in the current graph. """
+        goal = a
+        closed = set()
+        fringe = deque()
+        fringe.append(b)
+        while fringe:  # While fringe is not empty:
+            current = fringe.popleft()
+            if current == goal:
+                return True
+            if current not in closed:
+                closed.add(current)
+                for next_node in self.nodes[current].out_nodes:
+                    fringe.append(next_node)
+        return False
 
     def print_debug_info(self):
         print("gene lookup: ", self.gene_innovation_lookup)
@@ -86,8 +114,9 @@ class Genome:
 
 
 class Node:
-    def __init__(self, innovation, out_value=0):
+    def __init__(self, innovation, out_value=0, out_nodes=[]):
         self.innovation = innovation
+        self.out_nodes = out_nodes
         self.out_value = out_value
 
     def __str__(self):
