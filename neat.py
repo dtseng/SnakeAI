@@ -141,8 +141,12 @@ class Genome:
                     fringe.append(next_node)
         return False
 
-    def mutate_perturb_weight(self):
-        pass  # TODO: Finish this function
+    def mutate_all_weights(self):
+        for g in self.genes:
+            if math.random() < parameters.p_perturb:  # Perturb the weight
+                self.genes[g].weight += (math.random()*2 - 1) * parameters.max_perturb
+            else:
+                self.genes[g].weight = np.random.normal(0, parameters.init_weight_std)
 
     def print_debug_info(self):
         print("===========INFO=============")
@@ -202,6 +206,8 @@ def crossover(genome1, genome2):
             gene = g2.copy()
         elif g1 and g2:
             gene = random.choice([g1, g2]).copy()
+            if not g1.enable and not g2.enable and random.random() < parameters.p_enable_if_both_parents_disabled:
+                gene.enable = True
 
         composite_genes[i] = gene
         # Generate nodes from gene
@@ -221,12 +227,6 @@ def get_dict_value(val, dict):
         return None
 
 
-# g1_nodes = {0: Node(0), 1: Node(1), 2: Node(2)}
-# g2_nodes = {0: Node(0), 1: Node(1), 2: Node(2)}
-# g1_genes = {0: Gene(0, 2, 0.5, 0), 1: Gene(1, 2, 0.4, 1)}
-# g2_genes = {0: Gene(0, 2, 0.3, 0), 1: Gene(1, 2, 0.2, 1)}
-# g1 = Genome(g1_nodes, g1_genes)
-# g2 = Genome(g2_nodes, g2_genes)
 g1 = Genome()
 g1.print_debug_info()
 g2 = Genome()
@@ -234,5 +234,5 @@ g2.print_debug_info()
 g2.mutate_add_node()
 g2.fitness = 10
 g2.print_debug_info()
-# g3 = crossover(g1, g2)
-# g3.print_debug_info()
+g3 = crossover(g1, g2)
+g3.print_debug_info()
