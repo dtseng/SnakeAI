@@ -186,7 +186,7 @@ class Node:
         self.out_value = out_value
 
     def __str__(self):
-        return "||n:" + str(self.number) + ", o:" + str(self.out_nodes) + "|| "
+        return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
 
     __repr__ = __str__
 
@@ -239,6 +239,7 @@ def crossover(genome1, genome2):
         composite_nodes[gene.in_node].out_nodes.append(gene.out_node)
         if gene.out_node not in composite_nodes:
             composite_nodes[gene.out_node] = Node(gene.out_node)
+        composite_nodes[gene.out_node].in_nodes.append(gene.in_node)
 
     return Genome(composite_nodes, composite_genes)
 
