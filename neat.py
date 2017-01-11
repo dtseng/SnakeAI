@@ -30,18 +30,23 @@ class Genome:
         self.nodes = {}  # Maps inn. number to gene object
         self.genes = {}  # Maps inn. number to node object
 
-        for _ in range(parameters.num_inputs + 1):  # + 1 because of bias term
-            self.nodes[Genome.node_innovation] = Node(Genome.node_innovation)
-            Genome.node_innovation += 1
-        for _ in range(parameters.num_outputs):
-            o = Genome.node_innovation
+        for i in range(parameters.num_inputs + 1):  # + 1 because of bias term
+            if i < Genome.node_innovation:  # If this isn't the first genome being created
+                self.nodes[i] = Node(i)
+            else:
+                self.nodes[Genome.node_innovation] = Node(Genome.node_innovation)
+                Genome.node_innovation += 1
+        for j in range(parameters.num_inputs + 1, parameters.num_inputs + 1 + parameters.num_outputs):
+            if j < Genome.node_innovation:  # If this isn't hte first genome being created
+                o = j
+            else:
+                o = Genome.node_innovation
+                Genome.node_innovation += 1
             self.nodes[o] = Node(o)
             for i in range(parameters.num_inputs + 1):
                 self.nodes[i].out_nodes.append(o)
                 weight = np.random.normal(0, parameters.init_weight_std)
                 self.insert_gene(i, o, weight)
-            Genome.node_innovation += 1
-
 
     def mutate_add_node(self):
         # Choose an enabled gene to split.
@@ -141,8 +146,8 @@ class Genome:
 
     def print_debug_info(self):
         print("===========INFO=============")
-        print("gene lookup: ", self.gene_innovation_lookup)
-        print("node lookup: ", self.node_innovation_lookup)
+        # print("gene lookup: ", self.gene_innovation_lookup)
+        # print("node lookup: ", self.node_innovation_lookup)
         print("genes: ", self.genes)
         print("nodes: ", self.nodes)
 
@@ -154,7 +159,7 @@ class Node:
         self.out_value = out_value
 
     def __str__(self):
-        return "||n:" + str(self.number) + ", o:" + str(self.out_value) + "|| "
+        return "||n:" + str(self.number) + ", o:" + str(self.out_nodes) + "|| "
 
     __repr__ = __str__
 
@@ -185,7 +190,7 @@ def crossover(genome1, genome2):
     composite_nodes = {}
 
     largest_innovation_number = max(list(genes1.keys()) + list(genes2.keys()))
-    for i in range(largest_innovation_number):
+    for i in range(largest_innovation_number + 1):
         g1 = get_dict_value(i, genes1)
         g2 = get_dict_value(i, genes2)
 
@@ -202,9 +207,9 @@ def crossover(genome1, genome2):
         # Generate nodes from gene
         if gene.in_node not in composite_nodes:
             composite_nodes[gene.in_node] = Node(gene.in_node)
-        composite_nodes[gene.in_node].append(gene.out_node)
+        composite_nodes[gene.in_node].out_nodes.append(gene.out_node)
         if gene.out_node not in composite_nodes:
-            composite_nodes[gene.out_noe] = Node(gene.out_node)
+            composite_nodes[gene.out_node] = Node(gene.out_node)
 
     return Genome(composite_nodes, composite_genes)
 
@@ -216,11 +221,18 @@ def get_dict_value(val, dict):
         return None
 
 
-
-
-# inputs = []
-# g = Genome(inputs)
-# g.print_debug_info()
-# g.mutate_add_node()
-# g.mutate_add_connection()
-# g.print_debug_info()
+# g1_nodes = {0: Node(0), 1: Node(1), 2: Node(2)}
+# g2_nodes = {0: Node(0), 1: Node(1), 2: Node(2)}
+# g1_genes = {0: Gene(0, 2, 0.5, 0), 1: Gene(1, 2, 0.4, 1)}
+# g2_genes = {0: Gene(0, 2, 0.3, 0), 1: Gene(1, 2, 0.2, 1)}
+# g1 = Genome(g1_nodes, g1_genes)
+# g2 = Genome(g2_nodes, g2_genes)
+g1 = Genome()
+g1.print_debug_info()
+g2 = Genome()
+g2.print_debug_info()
+g2.mutate_add_node()
+g2.fitness = 10
+g2.print_debug_info()
+# g3 = crossover(g1, g2)
+# g3.print_debug_info()
