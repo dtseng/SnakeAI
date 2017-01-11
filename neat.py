@@ -13,24 +13,35 @@ class NeuralNetwork:
     to return the output. """
     def __init__(self, genome):
         seen_so_far = set()  # For O(1) access
-        self.ordered_nodes = []
+        not_seen_yet = set(genome.nodes)
+        self.genome = genome
+        self.ordered_nodes = []  # Topologically sorted.
 
+        # A bit slow. Think of faster way later.
+        for _ in range(genome.nodes):
+            for node in not_seen_yet:
+                if all(u in seen_so_far for u in node.in_nodes):
+                    seen_so_far.add(node)
+                    not_seen_yet.remove(node)
+                    self.ordered_nodes.append(node)
 
+    def evaluate(self, inputs):
+        if len(inputs) != parameters.num_inputs:
+            print("ERROR: Invalid input size")
+        self.genome.nodes[0] = 1  # Bias term
+        for i in range(parameters.num_inputs):
+            self.genome.nodes[i + 1].value = inputs[i]
 
-        # TODO: finish this part
+        for node in self.ordered_nodes:
+            total = 0
+            for gene in node.incoming_genes:
+                total += gene.weight * gene.in_node.value
+            node.value = sigmoid(total)
 
-
-        self.layers = []
-        total_seen = 0
-        current_layer = set()
-        for i in range(parameters.num_inputs + 1):
-            current_layer.add(genome.nodes[i])
-            total_seen += 1
-        self.layers.append(current_layer)
-        # while total_seen < len(genome.nodes):
-
-
-
+        outputs = []
+        for o in range(parameters.num_inputs + 1, parameters.num_inputs + 1 + parameters.num_outputs):
+            outputs.append(self.genome.ndoes[o].value)
+        return outputs
 
 
 class Genome:
@@ -101,6 +112,7 @@ class Genome:
             Genome.gene_innovation += 1
         gene = Gene(in_node, out_node, weight, innovation, enable)
         self.genes[innovation] = gene
+        self.nodes[out_node].incoming_genes.append(gene)
         return gene
 
     def insert_node(self, in_node, out_node, out_value=0):
@@ -183,7 +195,8 @@ class Node:
         self.number = innovation
         self.out_nodes = []
         self.in_nodes = []
-        self.out_value = out_value
+        self.incoming_genes = []
+        self.value = out_value
 
     def __str__(self):
         return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
