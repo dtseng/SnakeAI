@@ -8,6 +8,31 @@ def sigmoid(x):
     return 1/(1 + math.exp(-4.9*x))
 
 
+class NeuralNetwork:
+    """Converts a genome to a neural network, which takes in inputs
+    to return the output. """
+    def __init__(self, genome):
+        seen_so_far = set()  # For O(1) access
+        self.ordered_nodes = []
+
+
+
+        # TODO: finish this part
+
+
+        self.layers = []
+        total_seen = 0
+        current_layer = set()
+        for i in range(parameters.num_inputs + 1):
+            current_layer.add(genome.nodes[i])
+            total_seen += 1
+        self.layers.append(current_layer)
+        # while total_seen < len(genome.nodes):
+
+
+
+
+
 class Genome:
     gene_innovation = 0  # Gene innovation number
     node_innovation = 0
@@ -44,7 +69,6 @@ class Genome:
                 Genome.node_innovation += 1
             self.nodes[o] = Node(o)
             for i in range(parameters.num_inputs + 1):
-                self.nodes[i].out_nodes.append(o)
                 weight = np.random.normal(0, parameters.init_weight_std)
                 self.insert_gene(i, o, weight)
 
@@ -65,6 +89,8 @@ class Genome:
     def insert_gene(self, in_node, out_node, weight, enable=True):
         """Creates a gene, assigns it the correct innovation label, and adds it to the lookup table
         if necessary. """
+        self.nodes[in_node].out_nodes.append(out_node)
+        self.nodes[out_node].in_nodes.append(in_node)
         connection = (in_node, out_node)
         if connection in self.gene_innovation_lookup:  # If this gene had been created before
             innovation = self.gene_innovation_lookup[connection]
@@ -79,10 +105,8 @@ class Genome:
 
     def insert_node(self, in_node, out_node, out_value=0):
         """Creates a node, assigns it the correct innovation label, and adds it to the lookup table.
-        A new node is only added by splitting a gene. (in_node, out_node) is the same in_node and
-        out_node of the gene being split. """
-        # print("out_value", out_value)
-        self.nodes[in_node].out_nodes.remove(out_node)
+        A new node is only added by 'splitting' a gene. (in_node, out_node) is the same in_node and
+        out_node of the gene being 'split.' """
         key = (in_node, out_node)
         if key in self.node_innovation_lookup:
             innovation = self.node_innovation_lookup[key]
@@ -90,9 +114,7 @@ class Genome:
             innovation = Genome.node_innovation
             self.node_innovation_lookup[key] = innovation
             Genome.node_innovation += 1
-        self.nodes[in_node].out_nodes.append(innovation)
         node = Node(innovation, out_value)
-        node.out_nodes.append(out_node)
         self.nodes[innovation] = node
         return node
 
@@ -160,6 +182,7 @@ class Node:
     def __init__(self, innovation, out_value=0):
         self.number = innovation
         self.out_nodes = []
+        self.in_nodes = []
         self.out_value = out_value
 
     def __str__(self):
