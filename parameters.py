@@ -1,7 +1,7 @@
 """List of various parameters used in the algorithm. """
 
 # Number of inputs
-num_inputs = 1
+num_inputs = 2
 # Number of outputs
 num_outputs = 1
 # St. dv. of initial weight distribution (mean 0)

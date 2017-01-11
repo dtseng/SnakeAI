@@ -5,43 +5,8 @@ import numpy as np
 from collections import deque
 
 def sigmoid(x):
+    """Modified sigmoid. """
     return 1/(1 + math.exp(-4.9*x))
-
-
-class NeuralNetwork:
-    """Converts a genome to a neural network, which takes in inputs
-    to return the output. """
-    def __init__(self, genome):
-        seen_so_far = set()  # For O(1) access
-        not_seen_yet = set(genome.nodes)
-        self.genome = genome
-        self.ordered_nodes = []  # Topologically sorted.
-
-        # A bit slow. Think of faster way later.
-        for _ in range(genome.nodes):
-            for node in not_seen_yet:
-                if all(u in seen_so_far for u in node.in_nodes):
-                    seen_so_far.add(node)
-                    not_seen_yet.remove(node)
-                    self.ordered_nodes.append(node)
-
-    def evaluate(self, inputs):
-        if len(inputs) != parameters.num_inputs:
-            print("ERROR: Invalid input size")
-        self.genome.nodes[0] = 1  # Bias term
-        for i in range(parameters.num_inputs):
-            self.genome.nodes[i + 1].value = inputs[i]
-
-        for node in self.ordered_nodes:
-            total = 0
-            for gene in node.incoming_genes:
-                total += gene.weight * gene.in_node.value
-            node.value = sigmoid(total)
-
-        outputs = []
-        for o in range(parameters.num_inputs + 1, parameters.num_inputs + 1 + parameters.num_outputs):
-            outputs.append(self.genome.ndoes[o].value)
-        return outputs
 
 
 class Genome:
@@ -132,7 +97,7 @@ class Genome:
 
     def mutate_add_connection(self):
         """Adds a random connection in the neural network such that the result is still
-        a feedforward neural network."""
+        a feedforward neural network. """
         nodes = list(self.nodes.keys())
 
         for _ in range(min(len(self.nodes), 5)):  # Attempt this several times
@@ -199,7 +164,8 @@ class Node:
         self.value = out_value
 
     def __str__(self):
-        return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
+        # return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
+        return "||n:" + str(self.number) + ", v:" + str(self.value) + "|| "
 
     __repr__ = __str__
 
@@ -220,6 +186,54 @@ class Gene:
                + str(self.out_node) + ", w:" + str(self.weight) + ", e:" + str(self.enable) + "|| "
 
     __repr__ = __str__
+
+
+class NeuralNetwork:
+    """Converts a genome to a neural network, which takes in inputs
+    to return the output. """
+    def __init__(self, genome):
+        self.nodes = genome.nodes
+        # Topologically sorts the nodes in O(|V| + |E|) time.
+
+        self.ordered_nodes = []
+        in_degree_list = {}
+
+        for n in genome.nodes:
+            in_degree = len(genome.nodes[n].in_nodes)
+            in_degree_list[n] = in_degree
+
+        # Currently the input nodes are sources
+        current_source_nodes = range(parameters.num_inputs + 1)
+        next_source_nodes = []
+
+        while current_source_nodes:
+            self.ordered_nodes += current_source_nodes
+            for u in current_source_nodes:
+                for v in genome.nodes[u].out_nodes:
+                    in_degree_list[v] -= 1
+                    if in_degree_list[v] == 0:
+                        next_source_nodes.append(v)
+            current_source_nodes = next_source_nodes
+            next_source_nodes = []
+
+    def evaluate(self, input):
+        if len(input) != parameters.num_inputs:
+            print("ERROR: Invalid input size")
+        self.nodes[0].value = 1  # Bias term
+        for i in range(parameters.num_inputs):
+            self.nodes[i + 1].value = input[i]
+        for j in range(parameters.num_inputs + 1, len(self.ordered_nodes)):
+            node = self.ordered_nodes[j]
+            total = 0
+            for gene in self.nodes[node].incoming_genes:
+                if gene.enable:
+                    total += gene.weight * self.nodes[gene.in_node].value
+            self.nodes[node].value = sigmoid(total)
+
+        outputs = []
+        for o in range(parameters.num_inputs + 1, parameters.num_inputs + 1 + parameters.num_outputs):
+            outputs.append(self.nodes[o].value)
+        return outputs
 
 
 def crossover(genome1, genome2):
@@ -263,13 +277,10 @@ def get_dict_value(val, dict):
     except KeyError:
         return None
 
-
 g1 = Genome()
+g1.mutate_add_node()
 g1.print_debug_info()
-g2 = Genome()
-g2.print_debug_info()
-g2.mutate_add_node()
-g2.fitness = 10
-g2.print_debug_info()
-g3 = crossover(g1, g2)
-g3.print_debug_info()
+net = NeuralNetwork(g1)
+input = [2, 3]
+net.evaluate(input)
+print(net.evaluate(input))
