@@ -104,6 +104,7 @@ def evaluate_population(population):
         for genome in species.genomes:
             current = get_genome_fitness(genome)
             max_fitness = max(max_fitness, current)
+    return max_fitness
 
 
 def init_population():
@@ -128,22 +129,23 @@ def update_spawn_amounts(population):
         for genome in species.genomes:
             species.sum_adj_fitness += genome.fitness/N
 
-        species.best_genome = max(species.genomes, lambda x: x.fitness)
+        species.best_genome = max(species.genomes, key=lambda x: x.fitness)
         max_fitness = species.best_genome.fitness
-        if max_fitness <= species.best_fitness_so_far:  # Species didn't improve
+        if max_fitness <= species.best_fitness:  # Species didn't improve
             species.stagnate_generations += 1
         else:
             species.stagnate_generations = 0  # Restart stagnate count
-            species.best_fitness_so_far = max_fitness
+            species.best_fitness = max_fitness
         if species.stagnate_generations >= parameters.stagnate_threshold:  # Species has stagnated
             stagnated.add(species)
+            print("STAGNATED: Removed 1 species.")
         else:
             total_sum_adj_fitness += species.sum_adj_fitness
 
     for species in stagnated:
         population.remove(species)
     for species in population:
-        species.spawn_amount = int(parameters.population * species.sum_adj_fitness/total_sum_adj_fitness)
+        species.spawn_amount = int(parameters.population_size * species.sum_adj_fitness/total_sum_adj_fitness)
     return population
 
 
@@ -188,14 +190,20 @@ def evolution():
     """Puts everything together to evolve the snake AI. """
     population = init_population()
     for gen_number in range(parameters.num_generations):
-        print("===========Generation " + str(gen_number) + "===================")
+        print("=================Generation " + str(gen_number) + "===================")
         best_fitness = evaluate_population(population)
-        print("Best fitness: " + best_fitness)
-        print("Number of species: " + len(population))
+        print("Best fitness: " + str(best_fitness))
+        print("Number of species: " + str(len(population)))
         print("Representative dimensions: ", end='')
         for species in population:
+            # s = sorted(species.genomes, key=lambda x: x.fitness, reverse=True)
+            # print("as;lkfa;slkdfj" + str(s[0].fitness))
+            # for genome in s:
+                # print("(" + str(len(genome.nodes)) + ", " + str(len(genome.genes)) + ")")
             print(species, end='')
         print()
         print()
-        population = update_spawn_amounts()
+        population = update_spawn_amounts(population)
         population = next_generation_population(population)
+
+evolution()

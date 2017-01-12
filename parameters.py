@@ -1,6 +1,6 @@
 """List of various parameters used in the algorithm. """
 
-num_generations = 1
+num_generations = 200
 
 
 # Number of inputs
@@ -27,7 +27,7 @@ p_new_node = 0.2
 
 
 
-population_size = 150
+population_size = 250
 
 
 #Speciation
@@ -36,7 +36,7 @@ c2 = 1.0
 c3 = 0.4
 delta_threshold = 3
 
-stagnate_threshold = 15
+stagnate_threshold = float("inf") # 15
 
 
 #Keep the top fraction of the species for the next generation.

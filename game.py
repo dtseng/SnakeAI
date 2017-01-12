@@ -54,7 +54,7 @@ class Game:
 
     def step(self):
         """Updates the next food position, snake position, and the graphics for a single time step."""
-        inputs = self.retrieve_nn_inputs() # TODO: Change this
+        inputs = self.retrieve_nn_inputs()
         direction = self.snake.action(inputs)
         snake_head_copy = deepcopy(self.snake.head)
         self.snake.body.appendleft(snake_head_copy)
@@ -89,7 +89,7 @@ class Game:
         return coordinate[0] == self.wall_boundary or coordinate[0] == 0 or \
                coordinate[1] == self.wall_boundary or coordinate[1] == 0
 
-    def regenerate_food(self): # TODO: Might want to speed this up
+    def regenerate_food(self):
         self.food_graphic.undraw()
         self.win.setBackground("black")
         if (self.wall_boundary-1)**2 == len(self.snake.body) + 1:
