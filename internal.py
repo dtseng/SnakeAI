@@ -240,8 +240,11 @@ class Species:
     def __init__(self, representative=None):
         self.representative = representative
         self.genomes = []
-        self.best_fitness = 0
-        self.stagnate = 0
+        self.best_fitness = float("-inf")
+        self.stagnate_generations = 0
+        self.sum_adj_fitness = 0
+        self.spawn_amount = 0
+        self.best_genome = None
 
 
 # g1 = Genome()

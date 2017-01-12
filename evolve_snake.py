@@ -106,9 +106,40 @@ def init_population():
     species.genomes = all_genomes
     return [species]
 
-def evolve(population):
-    """Takes in the population (in the form of a list of species) and returns the next
-    generation of that population. """
+
+def find_spawn_amounts(population):
+    """Finding spawn amounts. Each species' spawn amount is proportional to the sum of its
+    genomes' adjusted fitness."""
+    stagnated = set()
+    total_sum_adj_fitness = 0
+    for species in population:
+        N = len(species.genomes)
+        for genome in species.genomes:
+            species.sum_adj_fitness += genome.fitness/N
+
+        species.best_genome = max(species.genomes, lambda x: x.fitness)
+        max_fitness = species.best_genome.fitness
+        if max_fitness <= species.best_fitness_so_far:  # Species didn't improve
+            species.stagnate_generations += 1
+        else:
+            species.stagnate_generations = 0
+            species.best_fitness_so_far = max_fitness
+        if species.stagnate_generations >= parameters.stagnate_threshold:  # Species has stagnated
+            stagnated.add(species)
+        else:
+            total_sum_adj_fitness += species.sum_adj_fitness
+
+    if total_sum_adj_fitness == 0:  # All species did really badly. In that case, restart the population
+        return init_population()
+    for species in stagnated:
+        population.remove(species)
+    for species in population:
+        species.spawn_amount = int(parameters.population * species.sum_adj_fitness/total_sum_adj_fitness)
+
+
+
+
+
 
 
 x = init_population()[0]

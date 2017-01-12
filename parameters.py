@@ -28,4 +28,6 @@ c2 = 1.0
 c3 = 0.4
 delta_threshold = 3
 
+stagnate_threshold = 15
+
 
