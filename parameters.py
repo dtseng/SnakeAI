@@ -1,9 +1,9 @@
 """List of various parameters used in the algorithm. """
 
 # Number of inputs
-num_inputs = 1
+num_inputs = 7
 # Number of outputs
-num_outputs = 1
+num_outputs = 4
 # St. dv. of initial weight distribution (mean 0)
 init_weight_std = 1
 # During crossover, probability of re-enabling gene if both parents are disabled.

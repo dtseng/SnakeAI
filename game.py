@@ -15,7 +15,7 @@ class Direction(Enum):
 
 
 class Game:
-    def __init__(self, window_size=200, game_size=15):
+    def __init__(self, neural_net, window_size=200, game_size=15):
         win = GraphWin(width=window_size, height=window_size)
         self.win = win
         win.setCoords(-1, -1, game_size, game_size)
@@ -29,7 +29,7 @@ class Game:
         self.wall_boundary = game_size - 1
         self.pointWidth = self.point_width
         self.walls = walls
-        self.snake = Snake((int(game_size / 2), int(game_size / 2)))
+        self.snake = Snake((int(game_size / 2), int(game_size / 2)), neural_net)
         self.score = 0
         self.continue_game = True
         self.food = (5, int(game_size/2))
@@ -53,7 +53,7 @@ class Game:
 
     def step(self):
         """Updates the next food position, snake position, and the graphics for a single time step."""
-        inputs = 1  # TODO: Change this
+        inputs = self.retrieve_nn_inputs() # TODO: Change this
         direction = self.snake.action(inputs)
         snake_head_copy = deepcopy(self.snake.head)
         self.snake.body.appendleft(snake_head_copy)
@@ -79,15 +79,18 @@ class Game:
             self.snake.body.pop()
             end = self.snake_graphic.pop()
             end.undraw()
+            self.win.setBackground("black")
         if self.snake.head in self.snake.body or self._coordinate_is_wall(self.snake.head):  # If snake died
             self.continue_game = False
+        update(20)
 
     def _coordinate_is_wall(self, coordinate):
         return coordinate[0] == self.wall_boundary or coordinate[0] == 0 or \
                coordinate[1] == self.wall_boundary or coordinate[1] == 0
 
-    def regenerate_food(self):
+    def regenerate_food(self): # TODO: Might want to speed this up
         self.food_graphic.undraw()
+        self.win.setBackground("black")
         if (self.wall_boundary-1)**2 == len(self.snake.body) + 1:
             self.continue_game = False
             return
@@ -99,6 +102,9 @@ class Game:
                     self.food = (food_x, food_y)
                     self.food_graphic = self.draw_line(self.food, self.food, "red")
                     break
+
+    def manhattan_distance_to_food(self):
+        return abs(self.food[0] - self.snake.head[0]) + abs(self.food[1] - self.snake.head[1])
 
     def retrieve_nn_inputs(self):
         """NN Input:
@@ -132,6 +138,7 @@ class Game:
             if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
                 nn_input.append(head[1] - i)
                 break
+        nn_input.append(self.snake.length())
         return nn_input
 
     def get_score(self):
@@ -148,10 +155,14 @@ class Game:
         """Returns false if the snake has hit a wall or itself."""
         return self.continue_game
 
+    def kill(self):
+        self.win.close()
+
 
 class Snake:
-    def __init__(self, head_coordinate):
+    def __init__(self, head_coordinate, neural_net):
         self.fitness = 0
+        self.fn = neural_net
         self.head = head_coordinate
         self.body = deque()
         self.body.append((head_coordinate[0] + 1, head_coordinate[1]))
@@ -159,20 +170,9 @@ class Snake:
 
     def action(self, inputs):  # Returns LEFT, RIGHT, UP, or DOWN.
         """Returns LEFT, RIGHT, UP, or DOWN. Outputs from neural network."""
-        return Direction.UP  # TODO: Neural network output here
+        nn_output = self.fn(inputs)
+        best_direction = nn_output.index(max(nn_output))
+        return Direction(best_direction)
 
-game = Game()
-# game.print_status()
-
-game.step()
-# game.print_status()
-
-game.step()
-# game.print_status()
-
-game.step()
-# game.print_status()
-#
-# game.step()
-# game.print_status()
-game.win.getMouse()
+    def length(self):
+        return 1 + len(self.body)
