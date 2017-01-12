@@ -1,5 +1,8 @@
 """List of various parameters used in the algorithm. """
 
+num_generations = 1
+
+
 # Number of inputs
 num_inputs = 7
 # Number of outputs
@@ -20,7 +23,6 @@ max_perturb = 0.1
 
 p_new_link = 0.5
 p_new_node = 0.2
-
 
 
 

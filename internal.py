@@ -253,3 +253,9 @@ class Species:
         self.sum_adj_fitness = 0
         self.spawn_amount = 0
         self.best_genome = None
+
+    def __str__(self):
+        return "(" + str(len(self.representative.nodes)) + ", " + str(len(self.representative.genes)) + ") "
+
+
+    __repr__ = __str__

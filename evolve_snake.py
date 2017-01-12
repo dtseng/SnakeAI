@@ -78,11 +78,13 @@ def delta(genome1, genome2):
 
 def find_species(population, genome):
     """population is a list of species. Returns the species that the genome belongs to. If
-    there aren't any species that it belongs to, it returns None. """
+    there aren't any species that it belongs to, it creates a new species. """
     for s in population:
         if delta(s.representative, genome) < parameters.delta_threshold:
             return s
-    return None
+    new_species = internal.Species(genome)
+    population.append(new_species)
+    return new_species
 
 
 def get_genome_fitness(genome):
@@ -93,12 +95,15 @@ def get_genome_fitness(genome):
         game.step()
         genome.fitness = 15 * game.snake.fitness + 0.5 * (game.manhattan_distance_to_food())
         game_time += 1
+    return genome.fitness
 
 
 def evaluate_population(population):
+    max_fitness = float("-inf")
     for species in population:
         for genome in species.genomes:
-            get_genome_fitness(genome)
+            current = get_genome_fitness(genome)
+            max_fitness = max(max_fitness, current)
 
 
 def init_population():
@@ -139,6 +144,8 @@ def update_spawn_amounts(population):
         population.remove(species)
     for species in population:
         species.spawn_amount = int(parameters.population * species.sum_adj_fitness/total_sum_adj_fitness)
+    return population
+
 
 def next_generation_species(species):
     """Returns the next generation (list) of genomes given the species. The size of the next generation
@@ -160,6 +167,35 @@ def next_generation_species(species):
     return new_generation
 
 
+def next_generation_population(population):
+    """Returns the next generation's list of species given this generation's list of species. """
+    next_genomes = []  # Contains a list of all genomes
+    for species in population:
+        next_genomes += next_generation_species(species)
+        species.genomes = []
 
-x = init_population()[0]
-print('asdf')
+    # Assign each genome to a species
+    for genome in next_genomes:
+        best_fit = find_species(population, genome)
+        best_fit.genomes.append(genome)
+    # Update representatives for each genome
+    for species in population:
+        species.representative = np.random.choice(species.genomes)
+    return population
+
+
+def evolution():
+    """Puts everything together to evolve the snake AI. """
+    population = init_population()
+    for gen_number in range(parameters.num_generations):
+        print("===========Generation " + str(gen_number) + "===================")
+        best_fitness = evaluate_population(population)
+        print("Best fitness: " + best_fitness)
+        print("Number of species: " + len(population))
+        print("Representative dimensions: ", end='')
+        for species in population:
+            print(species, end='')
+        print()
+        print()
+        population = update_spawn_amounts()
+        population = next_generation_population(population)
