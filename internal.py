@@ -1,6 +1,5 @@
 import parameters
 import math
-import random
 import numpy as np
 from collections import deque
 
@@ -52,7 +51,7 @@ class Genome:
         # Choose an enabled gene to split.
         while True:
             gene_numbers = list(self.genes.keys())
-            gene_mutate = self.genes[random.choice(gene_numbers)]
+            gene_mutate = self.genes[np.random.choice(gene_numbers)]
             if gene_mutate.enable:
                 break
 
@@ -101,8 +100,8 @@ class Genome:
         nodes = list(self.nodes.keys())
 
         for _ in range(min(len(self.nodes), 5)):  # Attempt this several times
-            n1 = random.choice(nodes)
-            n2 = random.choice(nodes)
+            n1 = np.random.choice(nodes)
+            n2 = np.random.choice(nodes)
 
             if n1 == n2:
                 continue
@@ -142,10 +141,19 @@ class Genome:
 
     def mutate_all_weights(self):
         for g in self.genes:
-            if math.random() < parameters.p_perturb:  # Perturb the weight
-                self.genes[g].weight += (math.random()*2 - 1) * parameters.max_perturb
+            if np.random.rand() < parameters.p_perturb:  # Perturb the weight
+                self.genes[g].weight += (np.random.rand()*2 - 1) * parameters.max_perturb
             else:
                 self.genes[g].weight = np.random.normal(0, parameters.init_weight_std)
+
+    def mutate(self):
+        """General function for mutation. Uses all the other mutation functions. """
+        if np.random.rand() < parameters.p_new_link:
+            self.mutate_add_connection()
+        if np.random.rand() < parameters.p_new_node:
+            self.mutate_add_node()
+        if np.random.rand() < parameters.p_perturb:
+            self.mutate_all_weights()
 
     def print_debug_info(self):
         print("===========INFO=============")
@@ -245,17 +253,3 @@ class Species:
         self.sum_adj_fitness = 0
         self.spawn_amount = 0
         self.best_genome = None
-
-
-# g1 = Genome()
-# g2 = Genome()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.mutate_add_node()
-# g1.print_debug_info()
-# print(delta(g1, g2))

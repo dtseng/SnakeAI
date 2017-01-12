@@ -1,7 +1,7 @@
 import parameters
 import internal
-import random
 import game
+import numpy as np
 import silent_game
 
 def crossover(genome1, genome2):
@@ -24,8 +24,8 @@ def crossover(genome1, genome2):
         elif g2 and not g1 and better == genome2:
             gene = g2.copy()
         elif g1 and g2:
-            gene = random.choice([g1, g2]).copy()
-            if not g1.enable and not g2.enable and random.random() < parameters.p_enable_if_both_parents_disabled:
+            gene = np.random.choice([g1, g2]).copy()
+            if not g1.enable and not g2.enable and np.random.rand() < parameters.p_enable_if_both_parents_disabled:
                 gene.enable = True
 
         composite_genes[i] = gene
@@ -76,10 +76,10 @@ def delta(genome1, genome2):
     return parameters.c1*excess/N + parameters.c2*disjoint/N + parameters.c3*sum_of_differences/N
 
 
-def find_species(species, genome):
-    """Returns the species that the genome belongs to. If
+def find_species(population, genome):
+    """population is a list of species. Returns the species that the genome belongs to. If
     there aren't any species that it belongs to, it returns None. """
-    for s in species:
+    for s in population:
         if delta(s.representative, genome) < parameters.delta_threshold:
             return s
     return None
@@ -89,10 +89,16 @@ def get_genome_fitness(genome):
     nn = internal.NeuralNetwork(genome)
     game = silent_game.Game(nn.evaluate)
     game_time = 0
-    while game_time < 10000 and game.get_continue_status():
+    while game_time < 10000 and game.get_continue_status():  # Run the game
         game.step()
         genome.fitness = 15 * game.snake.fitness + 0.5 * (game.manhattan_distance_to_food())
         game_time += 1
+
+
+def evaluate_population(population):
+    for species in population:
+        for genome in species.genomes:
+            get_genome_fitness(genome)
 
 
 def init_population():
@@ -102,12 +108,12 @@ def init_population():
     for _ in range(parameters.population_size):
         genome = internal.Genome()
         all_genomes.append(genome)
-    species = internal.Species(random.choice(all_genomes))
+    species = internal.Species(np.random.choice(all_genomes))
     species.genomes = all_genomes
     return [species]
 
 
-def find_spawn_amounts(population):
+def update_spawn_amounts(population):
     """Finding spawn amounts. Each species' spawn amount is proportional to the sum of its
     genomes' adjusted fitness."""
     stagnated = set()
@@ -122,23 +128,36 @@ def find_spawn_amounts(population):
         if max_fitness <= species.best_fitness_so_far:  # Species didn't improve
             species.stagnate_generations += 1
         else:
-            species.stagnate_generations = 0
+            species.stagnate_generations = 0  # Restart stagnate count
             species.best_fitness_so_far = max_fitness
         if species.stagnate_generations >= parameters.stagnate_threshold:  # Species has stagnated
             stagnated.add(species)
         else:
             total_sum_adj_fitness += species.sum_adj_fitness
 
-    if total_sum_adj_fitness == 0:  # All species did really badly. In that case, restart the population
-        return init_population()
     for species in stagnated:
         population.remove(species)
     for species in population:
         species.spawn_amount = int(parameters.population * species.sum_adj_fitness/total_sum_adj_fitness)
 
+def next_generation_species(species):
+    """Returns the next generation (list) of genomes given the species. The size of the next generation
+    will be species.spawn_amount"""
+    spawn_amount = species.spawn_amount
+    sorted_genomes = sorted(species.genomes, key=lambda g: g.fitness, reverse=True)
+    probability_chosen = np.array([g.fitness for g in species.genomes])
+    probability_chosen = probability_chosen / sum(probability_chosen)  # Normalize
 
+    N = len(species.genomes)
+    new_generation = sorted_genomes[0:int(parameters.keep_best_amount*N)]  # Keep top fraction of species
+    while len(new_generation) < spawn_amount:
+        g1 = np.random.choice(species.genomes, p=probability_chosen)
+        g2 = np.random.choice(species.genomes, p=probability_chosen)
+        new_generation.append(crossover(g1, g2))
 
-
+    for i in range(1, len(new_generation)):  # The top genome does not get mutated
+        new_generation[i].mutate()
+    return new_generation
 
 
 

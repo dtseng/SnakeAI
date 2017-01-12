@@ -13,10 +13,16 @@ p_enable_if_both_parents_disabled = 0.25
 # genome having all of its weights mutated. In which case,
 # each weight has p_perturb probability of being perturbed and
 # (1 - p_perturb) probability of being assiend a new random value.
-genome_weight_mutate = 0.8
+p_weight_mutate = 0.8
 p_perturb = 0.9
 # Maximum amount of perturbation
 max_perturb = 0.1
+
+p_new_link = 0.5
+p_new_node = 0.2
+
+
+
 
 
 population_size = 150
@@ -31,3 +37,5 @@ delta_threshold = 3
 stagnate_threshold = 15
 
 
+#Keep the top fraction of the species for the next generation.
+keep_best_amount = 0.25
