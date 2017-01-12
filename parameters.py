@@ -1,7 +1,7 @@
 """List of various parameters used in the algorithm. """
 
 # Number of inputs
-num_inputs = 2
+num_inputs = 1
 # Number of outputs
 num_outputs = 1
 # St. dv. of initial weight distribution (mean 0)
@@ -17,3 +17,15 @@ genome_weight_mutate = 0.8
 p_perturb = 0.9
 # Maximum amount of perturbation
 max_perturb = 0.1
+
+
+population_size = 150
+
+
+#Speciation
+c1 = 1.0
+c2 = 1.0
+c3 = 0.4
+delta_threshold = 3
+
+

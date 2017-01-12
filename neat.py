@@ -5,7 +5,7 @@ import numpy as np
 from collections import deque
 
 def sigmoid(x):
-    """Modified sigmoid. """
+    """Modified sigmoid for better fine-tuning. """
     return 1/(1 + math.exp(-4.9*x))
 
 
@@ -277,10 +277,57 @@ def get_dict_value(val, dict):
     except KeyError:
         return None
 
-g1 = Genome()
-g1.mutate_add_node()
-g1.print_debug_info()
-net = NeuralNetwork(g1)
-input = [2, 3]
-net.evaluate(input)
-print(net.evaluate(input))
+class Species:
+    def __init__(self):
+        self.representative = None
+        self.genomes = []
+
+
+def delta(genome1, genome2):
+    g1 = set(genome1.genes.keys())
+    g2 = set(genome2.genes.keys())
+    max1 = max(g1)
+    max2 = max(g2)
+
+    excess = 0
+    disjoint = 0
+    sum_of_differences = 0
+    N = min(len(g1), len(g2))
+    # if N < 20:
+        # N = 1
+
+    for current in g1.union(g2):
+        if current in g1 and current in g2:
+            sum_of_differences += abs(genome1.genes[current].weight - genome2.genes[current].weight)
+        elif current in g1 and current not in g2:
+            if current > max2:
+                excess += 1
+            else:
+                disjoint += 1
+        elif current in g2 and current not in g1:
+            if current > max1:
+                excess += 1
+            else:
+                disjoint += 1
+    return parameters.c1*excess/N + parameters.c2*disjoint/N + parameters.c3*sum_of_differences/N
+
+def find_species(species, genome):
+    """Returns the species that the genome belongs to. If
+    there aren't any species that it belongs to, it returns None. """
+    for s in species:
+        if delta(s.representative, genome) < parameters.delta_threshold:
+            return s
+    return None
+
+# g1 = Genome()
+# g2 = Genome()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.mutate_add_node()
+# g1.print_debug_info()
+# print(delta(g1, g2))
