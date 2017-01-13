@@ -1,6 +1,6 @@
 """List of various parameters used in the algorithm. """
 
-num_generations = 200
+num_generations = 50
 
 
 # Number of inputs
@@ -8,7 +8,7 @@ num_inputs = 7
 # Number of outputs
 num_outputs = 4
 # St. dv. of initial weight distribution (mean 0)
-init_weight_std = 1
+init_weight_std = 2
 # During crossover, probability of re-enabling gene if both parents are disabled.
 p_enable_if_both_parents_disabled = 0.25
 
@@ -22,7 +22,7 @@ p_perturb = 0.9
 max_perturb = 0.1
 
 p_new_link = 0.5
-p_new_node = 0.2
+p_new_node = 0.5
 
 
 
@@ -36,7 +36,7 @@ c2 = 1.0
 c3 = 0.4
 delta_threshold = 3
 
-stagnate_threshold = float("inf") # 15
+stagnate_threshold = 20 #float("inf")
 
 
 #Keep the top fraction of the species for the next generation.

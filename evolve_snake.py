@@ -94,6 +94,7 @@ def get_genome_fitness(genome):
     while game_time < 10000 and game.get_continue_status():  # Run the game
         game.step()
         genome.fitness = 15 * game.snake.fitness + 0.5 * (game.manhattan_distance_to_food())
+        # genome.fitness = game_time
         game_time += 1
     return genome.fitness
 
@@ -145,7 +146,7 @@ def update_spawn_amounts(population):
     for species in stagnated:
         population.remove(species)
     for species in population:
-        species.spawn_amount = int(parameters.population_size * species.sum_adj_fitness/total_sum_adj_fitness)
+        species.spawn_amount = max(3, int(parameters.population_size * species.sum_adj_fitness/total_sum_adj_fitness))
     return population
 
 
@@ -158,7 +159,7 @@ def next_generation_species(species):
     probability_chosen = probability_chosen / sum(probability_chosen)  # Normalize
 
     N = len(species.genomes)
-    new_generation = sorted_genomes[0:int(parameters.keep_best_amount*N)]  # Keep top fraction of species
+    new_generation = sorted_genomes[0:max(1, int(parameters.keep_best_amount*N))]  # Keep top fraction of species
     while len(new_generation) < spawn_amount:
         g1 = np.random.choice(species.genomes, p=probability_chosen)
         g2 = np.random.choice(species.genomes, p=probability_chosen)
@@ -180,6 +181,11 @@ def next_generation_population(population):
     for genome in next_genomes:
         best_fit = find_species(population, genome)
         best_fit.genomes.append(genome)
+    next_population = []
+    for species in population:
+        if species.genomes:  # If the species still has something assigned to it.
+            next_population.append(species)
+    population = next_population
     # Update representatives for each genome
     for species in population:
         species.representative = np.random.choice(species.genomes)
@@ -192,18 +198,27 @@ def evolution():
     for gen_number in range(parameters.num_generations):
         print("=================Generation " + str(gen_number) + "===================")
         best_fitness = evaluate_population(population)
-        print("Best fitness: " + str(best_fitness))
         print("Number of species: " + str(len(population)))
-        print("Representative dimensions: ", end='')
         for species in population:
-            # s = sorted(species.genomes, key=lambda x: x.fitness, reverse=True)
-            # print("as;lkfa;slkdfj" + str(s[0].fitness))
+            s = sorted(species.genomes, key=lambda x: x.fitness, reverse=True)
+            # best = s[0]
+            # bf = best.fitness
             # for genome in s:
-                # print("(" + str(len(genome.nodes)) + ", " + str(len(genome.genes)) + ")")
-            print(species, end='')
+            #     print("(" + str(len(genome.nodes)) + ", " + str(len(genome.genes)) + ")" + ": " + str(genome.fitness) + " ")
+            # print(species, end='')
+        # print()
+        print("Sizes: ", end='')
+        for species in population:
+            print(len(species.genomes), " ", end='')
         print()
-        print()
+        print("Best fitness: " + str(best_fitness))
+        # print()
         population = update_spawn_amounts(population)
         population = next_generation_population(population)
 
+np.random.seed(200)
 evolution()
+
+
+
+
