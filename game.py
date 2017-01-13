@@ -140,6 +140,7 @@ class Game:
                 nn_input.append(head[1] - i)
                 break
         nn_input.append(self.snake.length())
+        nn_input.append(1)
         return nn_input
 
     def get_score(self):

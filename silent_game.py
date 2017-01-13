@@ -116,28 +116,29 @@ class Game:
         nn_input = []
         head = self.snake.head
         nn_input.append(self.food[0] - head[0])
-        nn_input.append(self.food[1] - head[1])
-        for i in range(head[1] + 1, self.wall_boundary + 1):
-            test_pt = (head[0], i)
-            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-                nn_input.append(i - head[1])
-                break
-        for i in range(head[0] + 1, self.wall_boundary + 1):
-            test_pt = (i, head[1])
-            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-                nn_input.append(i - head[0])
-                break
-        for i in range(head[0] - 1, -1, -1):
-            test_pt = (i, head[1])
-            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-                nn_input.append(head[0] - i)
-                break
-        for i in range(head[1] - 1, -1, -1):
-            test_pt = (head[0], i)
-            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-                nn_input.append(head[1] - i)
-                break
-        nn_input.append(self.snake.length())
+        # nn_input.append(self.food[1] - head[1])
+        # for i in range(head[1] + 1, self.wall_boundary + 1):
+        #     test_pt = (head[0], i)
+        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+        #         nn_input.append(i - head[1])
+        #         break
+        # for i in range(head[0] + 1, self.wall_boundary + 1):
+        #     test_pt = (i, head[1])
+        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+        #         nn_input.append(i - head[0])
+        #         break
+        # for i in range(head[0] - 1, -1, -1):
+        #     test_pt = (i, head[1])
+        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+        #         nn_input.append(head[0] - i)
+        #         break
+        # for i in range(head[1] - 1, -1, -1):
+        #     test_pt = (head[0], i)
+        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+        #         nn_input.append(head[1] - i)
+        #         break
+        # nn_input.append(self.snake.length())
+        # nn_input.append(1)
         return nn_input
 
     def get_score(self):
@@ -172,8 +173,10 @@ class Snake:
 
     def action(self, inputs):  # Returns LEFT, RIGHT, UP, or DOWN.
         """Returns LEFT, RIGHT, UP, or DOWN. Outputs from neural network."""
+        # import numpy as np
         nn_output = self.fn(inputs)
         best_direction = nn_output.index(max(nn_output))
+        # return Direction(np.random.choice([0, 1, 2, 3]))
         return Direction(best_direction)
 
     def length(self):

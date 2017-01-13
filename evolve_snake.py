@@ -1,6 +1,7 @@
 import parameters
 import internal
-import game
+import pickle
+from medoids import k_medoids
 import numpy as np
 import silent_game
 
@@ -27,6 +28,8 @@ def crossover(genome1, genome2):
             gene = np.random.choice([g1, g2]).copy()
             if not g1.enable and not g2.enable and np.random.rand() < parameters.p_enable_if_both_parents_disabled:
                 gene.enable = True
+        else:
+            continue
 
         composite_genes[i] = gene
         # Generate nodes from gene
@@ -37,6 +40,16 @@ def crossover(genome1, genome2):
             composite_nodes[gene.out_node] = internal.Node(gene.out_node)
         composite_nodes[gene.out_node].in_nodes.append(gene.in_node)
 
+    for g in composite_genes:
+        if g != composite_genes[g].number:
+            print("ERROR -1")
+            with open("anomalies/bad_genome1", 'wb') as output:
+                pickle.dump(genome1, output, pickle.HIGHEST_PROTOCOL)
+            with open("anomalies/bad_genome2", 'wb') as output:
+                pickle.dump(genome2, output, pickle.HIGHEST_PROTOCOL)
+            with open("anomalies/bad_composite", 'wb') as output:
+                pickle.dump(composite_genes, output, pickle.HIGHEST_PROTOCOL)
+            raise ValueError('Mismatched genome number with dictionary. ')
     return internal.Genome(composite_nodes, composite_genes)
 
 
@@ -101,11 +114,14 @@ def get_genome_fitness(genome):
 
 def evaluate_population(population):
     max_fitness = float("-inf")
+    average_fitness = 0
     for species in population:
         for genome in species.genomes:
             current = get_genome_fitness(genome)
+            average_fitness += current
             max_fitness = max(max_fitness, current)
-    return max_fitness
+    average_fitness /= parameters.population_size
+    return max_fitness, average_fitness
 
 
 def init_population():
@@ -159,13 +175,13 @@ def next_generation_species(species):
     probability_chosen = probability_chosen / sum(probability_chosen)  # Normalize
 
     N = len(species.genomes)
-    new_generation = sorted_genomes[0:max(1, int(parameters.keep_best_amount*N))]  # Keep top fraction of species
+    new_generation = sorted_genomes[0:max(2, int(parameters.keep_best_amount*N))]  # Keep top fraction of species
     while len(new_generation) < spawn_amount:
         g1 = np.random.choice(species.genomes, p=probability_chosen)
         g2 = np.random.choice(species.genomes, p=probability_chosen)
         new_generation.append(crossover(g1, g2))
 
-    for i in range(1, len(new_generation)):  # The top genome does not get mutated
+    for i in range(2, len(new_generation)):  # The top 2 genomes do not get mutated
         new_generation[i].mutate()
     return new_generation
 
@@ -186,6 +202,17 @@ def next_generation_population(population):
         if species.genomes:  # If the species still has something assigned to it.
             next_population.append(species)
     population = next_population
+    """
+    #============= Medoids
+    diameter, med = k_medoids(next_genomes, k=5, distance=delta, spawn=1, verbose=False)
+    next_population = []
+    for m in med:
+        sp = internal.Species()
+        sp.genomes = m.elements
+        next_population.append(sp)
+
+    population = next_population"""
+    #============
     # Update representatives for each genome
     for species in population:
         species.representative = np.random.choice(species.genomes)
@@ -197,7 +224,7 @@ def evolution():
     population = init_population()
     for gen_number in range(parameters.num_generations):
         print("=================Generation " + str(gen_number) + "===================")
-        best_fitness = evaluate_population(population)
+        best_fitness, average_fitness = evaluate_population(population)
         print("Number of species: " + str(len(population)))
         for species in population:
             s = sorted(species.genomes, key=lambda x: x.fitness, reverse=True)
@@ -212,13 +239,12 @@ def evolution():
             print(len(species.genomes), " ", end='')
         print()
         print("Best fitness: " + str(best_fitness))
+        print("Average fitness: " + str(average_fitness))
         # print()
+        # internal.Genome.node_innovation_lookup = {}
+        # internal.Genome.node_innovation_lookup = {}
         population = update_spawn_amounts(population)
         population = next_generation_population(population)
 
 np.random.seed(200)
 evolution()
-
-
-
-
