@@ -241,10 +241,10 @@ def evolution():
         print("Best fitness: " + str(best_fitness))
         print("Average fitness: " + str(average_fitness))
         # print()
-        # internal.Genome.node_innovation_lookup = {}
-        # internal.Genome.node_innovation_lookup = {}
+        internal.Genome.node_innovation_lookup = {}
+        # internal.Genome.gene_innovation_lookup = {}
         population = update_spawn_amounts(population)
         population = next_generation_population(population)
 
-np.random.seed(200)
+np.random.seed(20)
 evolution()

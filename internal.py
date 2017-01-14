@@ -51,13 +51,18 @@ class Genome:
 
     def mutate_add_node(self):
         # Choose an enabled gene to split.
-        for _ in range(5*len(self.genes)):  # Number of attempts to find a valid gene
+        for attempt in range(5*len(self.genes)):  # Number of attempts to find a valid gene
             gene_numbers = list(self.genes.keys())
             gene_mutate = self.genes[np.random.choice(gene_numbers)]
             if gene_mutate.enable:
                 old_connection = (gene_mutate.in_node, gene_mutate.out_node)
                 break
-
+        if attempt == 5*len(self.genes) - 1:
+            print("Cannot add new node")  # Not an error, just for info purposes.
+            return
+        # print("old connection: " + str(old_connection))
+        # print("nodes: " + str(self.nodes))
+        # print("genes; " + str(self.genes))
         new_node = self.insert_node(old_connection[0], old_connection[1])
         self.insert_gene(old_connection[0], new_node.number, 1)
         self.insert_gene(new_node.number, old_connection[1], gene_mutate.weight)
@@ -69,14 +74,17 @@ class Genome:
         self.nodes[in_node].out_nodes.append(out_node)
         self.nodes[out_node].in_nodes.append(in_node)
         connection = (in_node, out_node)
-        if connection in self.gene_innovation_lookup:  # If this gene had been created before
-            innovation = self.gene_innovation_lookup[connection]
+        if connection in Genome.gene_innovation_lookup:  # If this gene had been created before
+            innovation = Genome.gene_innovation_lookup[connection]
             if innovation in self.genes:
+                print("attempt in: " + str(in_node) + " attempt out: " + str(out_node))
+                with open("anomalies/what", 'wb') as output:
+                    pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
                 raise ValueError('Attempted to insert existent gene. ')
         else:
             # If this hasn't been created before, then add this creation to the lookup table
             innovation = Genome.gene_innovation
-            self.gene_innovation_lookup[connection] = innovation
+            Genome.gene_innovation_lookup[connection] = innovation
             Genome.gene_innovation += 1
         gene = Gene(in_node, out_node, weight, innovation, enable)
         self.genes[innovation] = gene
@@ -88,11 +96,11 @@ class Genome:
         A new node is only added by 'splitting' a gene. (in_node, out_node) is the same in_node and
         out_node of the gene being 'split.' """
         key = (in_node, out_node)
-        if key in self.node_innovation_lookup:
-            innovation = self.node_innovation_lookup[key]
+        if key in Genome.node_innovation_lookup:
+            innovation = Genome.node_innovation_lookup[key]
         else:
             innovation = Genome.node_innovation
-            self.node_innovation_lookup[key] = innovation
+            Genome.node_innovation_lookup[key] = innovation
             Genome.node_innovation += 1
         node = Node(innovation, out_value)
         self.nodes[innovation] = node
@@ -183,8 +191,8 @@ class Genome:
 
     def print_debug_info(self):
         print("===========INFO=============")
-        # print("gene lookup: ", self.gene_innovation_lookup)
-        # print("node lookup: ", self.node_innovation_lookup)
+        # print("gene lookup: ", Genome.gene_innovation_lookup)
+        # print("node lookup: ", Genome.node_innovation_lookup)
         print("genes: ", self.genes)
         print("nodes: ", self.nodes)
 
@@ -199,7 +207,7 @@ class Node:
 
     def __str__(self):
         # return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
-        return "||n:" + str(self.number) + ", v:" + str(self.value) + "|| "
+        return "||n:" + str(self.number) + ", in: " + str(self.in_nodes) + ", out: " + str(self.out_nodes)
 
     __repr__ = __str__
 

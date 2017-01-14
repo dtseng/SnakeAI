@@ -34,7 +34,7 @@ class Game:
         self.score = 0
         self.continue_game = True
         self.food = (5, int(game_size/2))
-        random.seed(2)
+        random.seed(5)
         # self.snake_graphic = deque()
 
         # self.food_graphic = self.draw_line(self.food, self.food, "red")
@@ -116,29 +116,29 @@ class Game:
         nn_input = []
         head = self.snake.head
         nn_input.append(self.food[0] - head[0])
-        # nn_input.append(self.food[1] - head[1])
-        # for i in range(head[1] + 1, self.wall_boundary + 1):
-        #     test_pt = (head[0], i)
-        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-        #         nn_input.append(i - head[1])
-        #         break
-        # for i in range(head[0] + 1, self.wall_boundary + 1):
-        #     test_pt = (i, head[1])
-        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-        #         nn_input.append(i - head[0])
-        #         break
-        # for i in range(head[0] - 1, -1, -1):
-        #     test_pt = (i, head[1])
-        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-        #         nn_input.append(head[0] - i)
-        #         break
-        # for i in range(head[1] - 1, -1, -1):
-        #     test_pt = (head[0], i)
-        #     if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
-        #         nn_input.append(head[1] - i)
-        #         break
-        # nn_input.append(self.snake.length())
-        # nn_input.append(1)
+        nn_input.append(self.food[1] - head[1])
+        for i in range(head[1] + 1, self.wall_boundary + 1):
+            test_pt = (head[0], i)
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(i - head[1])
+                break
+        for i in range(head[0] + 1, self.wall_boundary + 1):
+            test_pt = (i, head[1])
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(i - head[0])
+                break
+        for i in range(head[0] - 1, -1, -1):
+            test_pt = (i, head[1])
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(head[0] - i)
+                break
+        for i in range(head[1] - 1, -1, -1):
+            test_pt = (head[0], i)
+            if self._coordinate_is_wall(test_pt) or test_pt in self.snake.body:
+                nn_input.append(head[1] - i)
+                break
+        nn_input.append(self.snake.length())
+        nn_input.append(1)
         return nn_input
 
     def get_score(self):
