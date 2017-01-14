@@ -7,6 +7,11 @@ import silent_game
 
 def crossover(genome1, genome2):
     """Implements the crossover functionality of the NEAT algorithm."""
+    if np.random.rand() < 0.5:
+        temp = genome1
+        genome1 = genome2
+        genome2 = temp
+
     genes1 = genome1.genes
     genes2 = genome2.genes
     better = max([genome1, genome2], key=lambda x: x.fitness)
@@ -30,15 +35,21 @@ def crossover(genome1, genome2):
                 gene.enable = True
         else:
             continue
-
         composite_genes[i] = gene
-        # Generate nodes from gene
-        if gene.in_node not in composite_nodes:
-            composite_nodes[gene.in_node] = internal.Node(gene.in_node)
-        composite_nodes[gene.in_node].out_nodes.append(gene.out_node)
-        if gene.out_node not in composite_nodes:
-            composite_nodes[gene.out_node] = internal.Node(gene.out_node)
-        composite_nodes[gene.out_node].in_nodes.append(gene.in_node)
+    for n in better.nodes:
+        composite_nodes[n] = better.nodes[n].copy()
+        for incoming in better.nodes[n].incoming_genes:
+            incoming_key = incoming.number
+            composite_nodes[n].incoming_genes.append(composite_genes[incoming_key])
+        if n in genome1.nodes and n in genome2.nodes:
+            composite_nodes[n].bias = np.random.choice([genome1.nodes[n], genome2.nodes[n]]).bias
+    # assert(all(len(composite_nodes[i].incoming_genes) == len(composite_nodes[i].in_nodes) for i in composite_nodes))
+
+
+    # print("--")
+    # print("genome1: " + str(genome1.nodes) + "fitness: " + str(genome1.fitness))
+    # print("genome2: " + str(genome2.nodes) + "fitness: " + str(genome2.fitness))
+    # print("genome3: " + str(composite_nodes))
 
     for g in composite_genes:
         if g != composite_genes[g].number:
@@ -86,6 +97,8 @@ def delta(genome1, genome2):
                 excess += 1
             else:
                 disjoint += 1
+        else:
+            raise ValueError("Bad condition in detla function.")
     return parameters.c1*excess/N + parameters.c2*disjoint/N + parameters.c3*sum_of_differences/N
 
 
@@ -94,6 +107,8 @@ def find_species(population, genome):
     there aren't any species that it belongs to, it creates a new species. """
     for s in population:
         if delta(s.representative, genome) < parameters.delta_threshold:
+            # print(delta(s.representative, genome), end='')
+            # print("(" + str(len(genome.nodes)) + ", " + str(len(genome.genes)) + ")")
             return s
     new_species = internal.Species(genome)
     population.append(new_species)

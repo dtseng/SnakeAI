@@ -5,8 +5,7 @@ from collections import deque
 import pickle
 
 def sigmoid(x):
-    """Modified sigmoid for better fine-tuning. """
-    return 1/(1 + math.exp(-4.9*x))
+    return 1/(1 + math.exp(-1*x))
 
 
 class Genome:
@@ -33,9 +32,9 @@ class Genome:
 
         for i in range(parameters.num_inputs):
             if i < Genome.node_innovation:  # If this isn't the first genome being created
-                self.nodes[i] = Node(i)
+                self.nodes[i] = Node(i, np.random.normal(0, parameters.bias_init_std))
             else:
-                self.nodes[Genome.node_innovation] = Node(Genome.node_innovation)
+                self.nodes[Genome.node_innovation] = Node(Genome.node_innovation, np.random.normal(0, parameters.bias_init_std))
                 Genome.node_innovation += 1
         for j in range(parameters.num_inputs, parameters.num_inputs + parameters.num_outputs):
             if j < Genome.node_innovation:  # If this isn't the first genome being created
@@ -43,7 +42,7 @@ class Genome:
             else:
                 o = Genome.node_innovation
                 Genome.node_innovation += 1
-            self.nodes[o] = Node(o)
+            self.nodes[o] = Node(o, np.random.normal(0, parameters.bias_init_std))
             for i in range(parameters.num_inputs):
                 # weight = np.random.normal(0, parameters.init_weight_std)
                 weight = np.random.rand()*4 - 2
@@ -91,7 +90,7 @@ class Genome:
         self.nodes[out_node].incoming_genes.append(gene)
         return gene
 
-    def insert_node(self, in_node, out_node, out_value=0):
+    def insert_node(self, in_node, out_node):
         """Creates a node, assigns it the correct innovation label, and adds it to the lookup table.
         A new node is only added by 'splitting' a gene. (in_node, out_node) is the same in_node and
         out_node of the gene being 'split.' """
@@ -102,7 +101,7 @@ class Genome:
             innovation = Genome.node_innovation
             Genome.node_innovation_lookup[key] = innovation
             Genome.node_innovation += 1
-        node = Node(innovation, out_value)
+        node = Node(innovation, np.random.normal(0, parameters.bias_init_std))
         self.nodes[innovation] = node
         return node
 
@@ -124,11 +123,59 @@ class Genome:
 
             # If the proposed connection doesn't point to an input node and doesn't create a cycle
             if n2 >= parameters.num_inputs and not self.will_create_cycle(n1, n2):
-                weight = np.random.normal(0, parameters.init_weight_std)
-                weight = np.random.rand()*4 - 2
+                weight = np.random.normal(0, parameters.weight_init_std)
+                # weight = np.random.rand()*4 - 2
 
                 self.insert_gene(n1, n2, weight)
                 return
+
+    def mutate_delete_connection(self):
+        if len(self.genes) == 1:
+            return
+        gene = np.random.choice(list(self.genes.keys()))
+        in_node = self.genes[gene].in_node
+        out_node = self.genes[gene].out_node
+        self.nodes[in_node].out_nodes.remove(out_node)
+        self.nodes[out_node].in_nodes.remove(in_node)
+        self.nodes[out_node].incoming_genes.remove(self.genes[gene])
+        del self.genes[gene]
+        assert(len(self.genes) > 0)
+
+
+    def mutate_delete_node(self):
+        del_node = np.random.choice(list(self.nodes.keys()))
+        if del_node < parameters.num_inputs + parameters.num_outputs:  # Can't delete an input or output
+            return
+        if len(self.nodes[del_node].in_nodes) + len(self.nodes[del_node].out_nodes) == len(self.genes):
+            return
+
+        genes_to_delete = set()
+        for g in self.genes:
+            if del_node == self.genes[g].in_node or del_node == self.genes[g].out_node:
+                genes_to_delete.add(g)
+        for out in self.nodes[del_node].out_nodes:
+            self.nodes[out].in_nodes.remove(del_node)
+        for in_n in self.nodes[del_node].in_nodes:
+            self.nodes[in_n].out_nodes.remove(del_node)
+
+        for key in genes_to_delete:
+            o_node = self.genes[key].out_node
+            self.nodes[o_node].incoming_genes.remove(self.genes[key])
+            del self.genes[key]
+
+        del self.nodes[del_node]
+
+        # in_node_sum = 0
+        # out_node_sum = 0
+        # for i in self.nodes:
+        #     in_node_sum += len(self.nodes[i].in_nodes)
+        #     out_node_sum += len(self.nodes[i].out_nodes)
+        #
+        # assert in_node_sum == len(self.genes)
+        #
+        #
+        # assert in_node_sum == out_node_sum
+
 
     def will_create_cycle(self, a, b):
         """Tests whether adding the new link (a, b) will create a cycle in the network.
@@ -174,19 +221,29 @@ class Genome:
             if np.random.rand() < parameters.p_perturb:  # Perturb the weight
                 self.genes[g].weight += (np.random.rand()*2 - 1) * parameters.max_perturb
             else:
-                self.genes[g].weight = np.random.normal(0, parameters.init_weight_std)
-                self.genes[g].weight = np.random.rand()*4 - 2
+                self.genes[g].weight = np.random.normal(0, parameters.weight_init_std)
+                # self.genes[g].weight = np.random.rand()*4 - 2
 
     def mutate(self):
         """General function for mutation. Uses all the other mutation functions. """
-        if np.random.rand() < parameters.p_new_link:
-            self.mutate_add_connection()
-        if np.random.rand() < parameters.p_new_node:
+        if np.random.rand() < parameters.new_node_rate:
             self.mutate_add_node()
-        if np.random.rand() < parameters.p_perturb:
-            self.mutate_all_weights()
+
+        if np.random.rand() < parameters.del_node_rate:
+            self.mutate_delete_node()
+
+        if np.random.rand() < parameters.new_link_rate:
+            self.mutate_add_connection()
+
+        if np.random.rand() < parameters.del_link_rate:
+            self.mutate_delete_connection()
+
         for g in self.genes:
-            if g != self.genes[g].number:
+            self.genes[g].mutate_weight()
+        for n in self.nodes:
+            self.nodes[n].mutate_bias()
+        for k in self.genes:
+            if k != self.genes[k].number:
                 raise ValueError('Mismatched genome number with dictionary. ')
 
     def print_debug_info(self):
@@ -198,16 +255,30 @@ class Genome:
 
 
 class Node:
-    def __init__(self, innovation, out_value=0):
+    def __init__(self, innovation, bias, out_value=0):
         self.number = innovation
         self.out_nodes = []
         self.in_nodes = []
         self.incoming_genes = []
         self.value = out_value
+        self.bias = bias
+
+    def copy(self):
+        new_node = Node(self.number, self.bias)
+        new_node.out_nodes = list(self.out_nodes)
+        new_node.in_nodes = list(self.in_nodes)
+        return new_node
+
+    def mutate_bias(self):
+        r = np.random.rand()
+        if r < parameters.bias_replace_rate:
+            self.bias = np.random.normal(0, parameters.bias_init_std)
+        if r < parameters.bias_replace_rate + parameters.bias_mutate_rate:
+            self.bias = self.bias + np.random.normal(0.0, parameters.bias_mutate_std)
 
     def __str__(self):
         # return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
-        return "||n:" + str(self.number) + ", in: " + str(self.in_nodes) + ", out: " + str(self.out_nodes)
+        return "||n:" + str(self.number) + ", in: " + str(self.in_nodes) + ", out: " + str(self.out_nodes) + ", bias: " + str(self.bias)
 
     __repr__ = __str__
 
@@ -219,6 +290,13 @@ class Gene:
         self.out_node = out_node
         self.weight = weight
         self.enable = enable
+
+    def mutate_weight(self):
+        r = np.random.rand()
+        if r < parameters.weight_replace_rate:
+            self.weight = np.random.normal(0, parameters.weight_init_std)
+        if r < parameters.weight_replace_rate + parameters.weight_mutate_rate:
+            self.weight = self.weight + np.random.normal(0.0, parameters.weight_mutate_std)
 
     def copy(self):
         return Gene(self.in_node, self.out_node, self.weight, self.number, self.enable)
@@ -235,7 +313,7 @@ class NeuralNetwork:
     to return the output. """
     def __init__(self, genome):
         self.nodes = genome.nodes
-
+        self.genome = genome
         # seen_so_far = set()  # For O(1) access
         # not_seen_yet = set(genome.nodes)
         # self.genome = genome
@@ -262,12 +340,19 @@ class NeuralNetwork:
         self.ordered_nodes = []
         in_degree_list = {}
 
+        current_source_nodes = []
+
         for n in genome.nodes:
+            genome.nodes[n].value = 0
             in_degree = len(genome.nodes[n].in_nodes)
+            if in_degree == 0:
+                current_source_nodes.append(n)
             in_degree_list[n] = in_degree
 
+        # assert all(i in current_source_nodes for i in range(parameters.num_inputs))
+
         # Currently the input nodes are sources
-        current_source_nodes = range(parameters.num_inputs)
+        # current_source_nodes = range(parameters.num_inputs)
         next_source_nodes = []
         finished = set()
         while current_source_nodes:
@@ -284,15 +369,13 @@ class NeuralNetwork:
         #         print("badddd" + str(in_degree_list[i]))
 
         if len(self.nodes) != len(self.ordered_nodes):
-            # print("baddddd" + str(len(self.nodes) - len(self.ordered_nodes)))
             with open("anomalies/bad_genome", 'wb') as output:
-                pickle.dump(genome, output, pickle.HIGHEST_PROTOCOL)
-
-
+                pickle.dump(self.genome, output, pickle.HIGHEST_PROTOCOL)
             print(genome.genes)
             for n in self.nodes:
                 print(str(n) + ": " + "in: " + str(self.nodes[n].in_nodes) + " out: " + str(self.nodes[n].out_nodes))
             raise ValueError('Topological sort failed. ')
+        assert (all(len(self.genome.nodes[i].incoming_genes) == len(self.genome.nodes[i].in_nodes) for i in self.genome.nodes))
 
     def evaluate(self, input):
         if len(input) != parameters.num_inputs:
@@ -305,11 +388,33 @@ class NeuralNetwork:
             for gene in self.nodes[node].incoming_genes:
                 if gene.enable:
                     total += gene.weight * self.nodes[gene.in_node].value
-            self.nodes[node].value = sigmoid(total)
+            self.nodes[node].value = sigmoid(total + self.nodes[node].bias)
 
         outputs = []
         for o in range(parameters.num_inputs, parameters.num_inputs + parameters.num_outputs):
             outputs.append(self.nodes[o].value)
+
+        # for _ in range(2*len(self.ordered_nodes)):
+        #     for j in range(parameters.num_inputs, len(self.ordered_nodes)):
+        #         node = self.ordered_nodes[j]
+        #         total = 0
+        #         for gene in self.nodes[node].incoming_genes:
+        #             if gene.enable:
+        #                 total += gene.weight * self.nodes[gene.in_node].value
+        #         self.nodes[node].value = sigmoid(total)
+        #
+        # outputs2 = []
+        # for j in range(parameters.num_inputs, parameters.num_inputs + parameters.num_outputs):
+        #     outputs2.append(self.nodes[j].value)
+        #
+        # if not all(outputs2[i] == outputs[i] for i in range(len(outputs))):
+        #     print(outputs2)
+        #     print(outputs)
+        #     print(self.nodes)
+        #     with open("anomalies/weird_genome", 'wb') as output:
+        #         pickle.dump(self.genome, output, pickle.HIGHEST_PROTOCOL)
+        #
+        #     raise ValueError("Bad evaluation of network.")
         return outputs
 
 

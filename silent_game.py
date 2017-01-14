@@ -34,7 +34,7 @@ class Game:
         self.score = 0
         self.continue_game = True
         self.food = (5, int(game_size/2))
-        random.seed(5)
+        random.seed(2)
         # self.snake_graphic = deque()
 
         # self.food_graphic = self.draw_line(self.food, self.food, "red")
