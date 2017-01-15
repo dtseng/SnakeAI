@@ -1,6 +1,6 @@
 """List of various parameters used in the algorithm. """
 
-num_generations = 100
+num_generations = 300
 population_size = 500
 num_inputs = 8
 num_outputs = 4

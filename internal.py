@@ -49,6 +49,7 @@ class Genome:
                 self.insert_gene(i, o, weight)
 
     def mutate_add_node(self):
+        """Adds a node to the genome. """
         # Choose an enabled gene to split.
         for attempt in range(5*len(self.genes)):  # Number of attempts to find a valid gene
             gene_numbers = list(self.genes.keys())
@@ -128,6 +129,7 @@ class Genome:
                 return
 
     def mutate_delete_connection(self):
+        """Selects a random connection to delete. """
         if len(self.genes) == 1:
             return
         gene = np.random.choice(list(self.genes.keys()))
@@ -140,6 +142,7 @@ class Genome:
         assert(len(self.genes) > 0)
 
     def mutate_delete_node(self):
+        """Selects a random node to delete from the genome. """
         del_node = np.random.choice(list(self.nodes.keys()))
         if del_node < parameters.num_inputs + parameters.num_outputs:  # Can't delete an input or output
             return
@@ -183,7 +186,8 @@ class Genome:
         return False
 
     def mutate(self):
-        """General function for mutation. Uses all the other mutation functions. """
+        """Mutates the genome. With a certan probability, it adds a new node, deletes a node
+        creates a new link, deletes a link, mutates its weights, and/or mutates its bias. """
         if np.random.rand() < parameters.new_node_rate:
             self.mutate_add_node()
 
@@ -218,6 +222,7 @@ class Node:
         return new_node
 
     def mutate_bias(self):
+        """Either perturb or replace the bias. """
         r = np.random.rand()
         if r < parameters.bias_replace_rate:
             self.bias = np.random.normal(0, parameters.bias_init_std)
@@ -240,6 +245,7 @@ class Gene:
         self.enable = enable
 
     def mutate_weight(self):
+        """Either perturb or replace the current weights. """
         r = np.random.rand()
         if r < parameters.weight_replace_rate:
             self.weight = np.random.normal(0, parameters.weight_init_std)
@@ -263,7 +269,8 @@ class NeuralNetwork:
         self.nodes = genome.nodes
         self.genome = genome
 
-        # Topologically sorts the nodes in O(|V| + |E|) time.
+        # Topologically sort the nodes in O(|V| + |E|) time. Pop off the source nodes, and 'delete'
+        # the outgoing edges from the source nodes. Then repeat.
 
         self.ordered_nodes = []
         in_degree_list = {}
@@ -298,6 +305,7 @@ class NeuralNetwork:
             raise ValueError('Topological sort failed. ')
 
     def evaluate(self, input):
+        """Evaluates the neural network given the list of inputs. """
         if len(input) != parameters.num_inputs:
             raise ValueError('Incorrect input size.')
         for i in range(parameters.num_inputs):

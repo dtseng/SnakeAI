@@ -55,7 +55,7 @@ class Game:
     def step(self):
         """Updates the next food position, snake position, and the graphics for a single time step."""
         if (self.display_graphics):
-            update(30)
+            update(50)
         inputs = self.retrieve_nn_inputs()
         direction = self.snake.action(inputs)
         snake_head_copy = deepcopy(self.snake.head)

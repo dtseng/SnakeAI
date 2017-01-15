@@ -13,33 +13,28 @@ def crossover(genome1, genome2):
         genome1 = genome2
         genome2 = temp
 
+    if genome2.fitness > genome1.fitness:
+        temp = genome1
+        genome1 = genome2
+        genome2 = temp
+
     genes1 = genome1.genes
     genes2 = genome2.genes
-    better = max([genome1, genome2], key=lambda x: x.fitness)
     composite_genes = {}
     composite_nodes = {}
 
-    largest_innovation_number = max(list(genes1.keys()) + list(genes2.keys()))
-    for i in range(largest_innovation_number + 1):
-        g1 = get_dict_value(i, genes1)
-        g2 = get_dict_value(i, genes2)
-
-        if not (g1 or g2):
-            continue
-        elif g1 and not g2 and better == genome1:
-            gene = g1.copy()
-        elif g2 and not g1 and better == genome2:
-            gene = g2.copy()
-        elif g1 and g2:
-            gene = np.random.choice([g1, g2]).copy()
-            if not g1.enable and not g2.enable and np.random.rand() < parameters.p_enable_if_both_parents_disabled:
-                gene.enable = True
+    for g in genes1:
+        if g not in genes2:
+            composite_genes[g] = genes1[g].copy()
         else:
-            continue
-        composite_genes[i] = gene
-    for n in better.nodes:
-        composite_nodes[n] = better.nodes[n].copy()
-        for incoming in better.nodes[n].incoming_genes:
+            composite_genes[g] = np.random.choice([genes1[g], genes2[g]]).copy()
+            if not genes1[g].enable and not genes2[g].enable and \
+                            np.random.rand() < parameters.p_enable_if_both_parents_disabled:
+                composite_genes[g].enable = True
+
+    for n in genome1.nodes:
+        composite_nodes[n] = genome1.nodes[n].copy()
+        for incoming in genome1.nodes[n].incoming_genes:
             incoming_key = incoming.number
             composite_nodes[n].incoming_genes.append(composite_genes[incoming_key])
         if n in genome1.nodes and n in genome2.nodes:
@@ -47,15 +42,15 @@ def crossover(genome1, genome2):
 
     return internal.Genome(composite_nodes, composite_genes)
 
-
 def get_dict_value(val, dict):
     try:
         return dict[val]
     except KeyError:
         return None
 
-
 def delta(genome1, genome2):
+    """This is the delta function used to determine the similarity between two
+    genomes. The higher the result, the more dissimilar the two genomes are. """
     g1 = set(genome1.genes.keys())
     g2 = set(genome2.genes.keys())
     max1 = max(g1)
@@ -81,8 +76,7 @@ def delta(genome1, genome2):
                 disjoint += 1
         else:
             raise ValueError("Bad condition in delta function.")
-    return parameters.c1*excess/N + parameters.c2*disjoint/N + parameters.c3*sum_of_differences/N
-
+    return parameters.c1 * excess / N + parameters.c2 * disjoint / N + parameters.c3 * sum_of_differences / N
 
 def find_species(population, genome):
     """population is a list of species. Returns the species that the genome belongs to. If
@@ -96,8 +90,8 @@ def find_species(population, genome):
     population.append(new_species)
     return new_species
 
-
 def run_genome_in_game(genome, display_graphics=False):
+    """Evaluates the fitness of a genome by using it in the snake game. """
     nn = internal.NeuralNetwork(genome)
     game = snake_game.Game(nn.evaluate, display_graphics)
     game_time = 0
@@ -108,8 +102,9 @@ def run_genome_in_game(genome, display_graphics=False):
         game_time += 1
     return genome.fitness
 
-
 def evaluate_population(population):
+    """Finds the fitness for all genomes in the population. The population is given as
+    a list of species."""
     max_fitness = float("-inf")
     average_fitness = 0
     best_genome = None
@@ -123,7 +118,6 @@ def evaluate_population(population):
     average_fitness /= parameters.population_size
     return max_fitness, average_fitness, best_genome
 
-
 def init_population():
     """Returns a one-element list of one species. This species contains the entire population
     for the first generation. """
@@ -135,7 +129,6 @@ def init_population():
     species.genomes = all_genomes
     return [species]
 
-
 def update_spawn_amounts(population):
     """Finding spawn amounts. Each species' spawn amount is proportional to the sum of its
     genomes' adjusted fitness."""
@@ -144,7 +137,7 @@ def update_spawn_amounts(population):
     for species in population:
         N = len(species.genomes)
         for genome in species.genomes:
-            species.sum_adj_fitness += genome.fitness/N
+            species.sum_adj_fitness += genome.fitness / N
 
         species.best_genome = max(species.genomes, key=lambda x: x.fitness)
         max_fitness = species.best_genome.fitness
@@ -162,9 +155,9 @@ def update_spawn_amounts(population):
     for species in stagnated:
         population.remove(species)
     for species in population:
-        species.spawn_amount = max(3, int(parameters.population_size * species.sum_adj_fitness/total_sum_adj_fitness))
+        species.spawn_amount = max(3, int(
+            parameters.population_size * species.sum_adj_fitness / total_sum_adj_fitness))
     return population
-
 
 def next_generation_species(species):
     """Returns the next generation (list) of genomes given the species. The size of the next generation
@@ -175,7 +168,7 @@ def next_generation_species(species):
     probability_chosen = probability_chosen / sum(probability_chosen)  # Normalize
 
     N = len(species.genomes)
-    new_generation = sorted_genomes[0:max(2, int(parameters.keep_best_amount*N))]  # Keep top fraction of species
+    new_generation = sorted_genomes[0:max(2, int(parameters.keep_best_amount * N))]  # Keep top fraction of species
     while len(new_generation) < spawn_amount:
         g1 = np.random.choice(species.genomes, p=probability_chosen)
         g2 = np.random.choice(species.genomes, p=probability_chosen)
@@ -184,7 +177,6 @@ def next_generation_species(species):
     for i in range(2, len(new_generation)):  # The top 2 genomes do not get mutated
         new_generation[i].mutate()
     return new_generation
-
 
 def next_generation_population(population):
     """Returns the next generation's list of species given this generation's list of species. """
@@ -208,19 +200,18 @@ def next_generation_population(population):
         species.representative = np.random.choice(species.genomes)
     return population
 
-
 def evolution():
     """Puts everything together to evolve the snake AI. """
     population = init_population()
     best_fitness_overall = float("-inf")
-
 
     for gen_number in range(parameters.num_generations):
         print("=================Generation " + str(gen_number) + "===================")
         best_fitness_population, average_fitness, best_genome = evaluate_population(population)
         if best_fitness_population > best_fitness_overall:
             best_fitness_overall = best_fitness_population
-            with open("genomes/generation " + str(gen_number) + " fitness " + str(best_genome.fitness), 'wb') as output:
+            with open("genomes/generation " + str(gen_number) + " fitness " + str(best_genome.fitness),
+                      'wb') as output:
                 pickle.dump(best_genome, output, pickle.HIGHEST_PROTOCOL)
         print("Number of species: " + str(len(population)))
         print("Sizes: ", end='')
@@ -235,8 +226,9 @@ def evolution():
         population = update_spawn_amounts(population)
         population = next_generation_population(population)
 
-
-def show_genome_capabilities(filename):
+def test_genome_in_game(filename):
+    """Loads the genome from file, and displays the snake AI as played by the
+    genome. """
     with open(filename, 'rb') as file:
         genome = pickle.load(file)
     fitness = run_genome_in_game(genome, display_graphics=True)
@@ -244,4 +236,5 @@ def show_genome_capabilities(filename):
 
 np.random.seed(20)  # For debugging purposes
 # evolution()
-show_genome_capabilities("genomes/generation 0 fitness 24.5")
+test_genome_in_game("samples2/generation 203 fitness 376.0")
+# show_genome_capabilities("genomes/generation 78 fitness 92.5")
