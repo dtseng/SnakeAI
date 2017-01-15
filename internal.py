@@ -59,9 +59,7 @@ class Genome:
         if attempt == 5*len(self.genes) - 1:
             print("Cannot add new node")  # Not an error, just for info purposes.
             return
-        # print("old connection: " + str(old_connection))
-        # print("nodes: " + str(self.nodes))
-        # print("genes; " + str(self.genes))
+
         new_node = self.insert_node(old_connection[0], old_connection[1])
         self.insert_gene(old_connection[0], new_node.number, 1)
         self.insert_gene(new_node.number, old_connection[1], gene_mutate.weight)
@@ -141,7 +139,6 @@ class Genome:
         del self.genes[gene]
         assert(len(self.genes) > 0)
 
-
     def mutate_delete_node(self):
         del_node = np.random.choice(list(self.nodes.keys()))
         if del_node < parameters.num_inputs + parameters.num_outputs:  # Can't delete an input or output
@@ -165,18 +162,6 @@ class Genome:
 
         del self.nodes[del_node]
 
-        # in_node_sum = 0
-        # out_node_sum = 0
-        # for i in self.nodes:
-        #     in_node_sum += len(self.nodes[i].in_nodes)
-        #     out_node_sum += len(self.nodes[i].out_nodes)
-        #
-        # assert in_node_sum == len(self.genes)
-        #
-        #
-        # assert in_node_sum == out_node_sum
-
-
     def will_create_cycle(self, a, b):
         """Tests whether adding the new link (a, b) will create a cycle in the network.
         Assumes that the graph currently contains no cycles (DAG). This can be done
@@ -196,33 +181,6 @@ class Genome:
                 for next_node in self.nodes[current].out_nodes:
                     fringe.append(next_node)
         return False
-        # i, o = a, b
-        # if i == o:
-        #     return True
-        #
-        # visited = {o}
-        # while True:
-        #     num_added = 0
-        #     # for a, b in connections:
-        #     for g in self.genes:
-        #         a, b = self.genes[g].in_node, self.genes[g].out_node
-        #         if a in visited and b not in visited:
-        #             if b == i:
-        #                 return True
-        #
-        #             visited.add(b)
-        #             num_added += 1
-        #
-        #     if num_added == 0:
-        #         return False
-
-    def mutate_all_weights(self):
-        for g in self.genes:
-            if np.random.rand() < parameters.p_perturb:  # Perturb the weight
-                self.genes[g].weight += (np.random.rand()*2 - 1) * parameters.max_perturb
-            else:
-                self.genes[g].weight = np.random.normal(0, parameters.weight_init_std)
-                # self.genes[g].weight = np.random.rand()*4 - 2
 
     def mutate(self):
         """General function for mutation. Uses all the other mutation functions. """
@@ -242,16 +200,6 @@ class Genome:
             self.genes[g].mutate_weight()
         for n in self.nodes:
             self.nodes[n].mutate_bias()
-        for k in self.genes:
-            if k != self.genes[k].number:
-                raise ValueError('Mismatched genome number with dictionary. ')
-
-    def print_debug_info(self):
-        print("===========INFO=============")
-        # print("gene lookup: ", Genome.gene_innovation_lookup)
-        # print("node lookup: ", Genome.node_innovation_lookup)
-        print("genes: ", self.genes)
-        print("nodes: ", self.nodes)
 
 
 class Node:
@@ -277,8 +225,8 @@ class Node:
             self.bias = self.bias + np.random.normal(0.0, parameters.bias_mutate_std)
 
     def __str__(self):
-        # return "||n:" + str(self.number) + ", i:" + str(self.in_nodes) + ", o:" + str(self.out_nodes) + "|| "
-        return "||n:" + str(self.number) + ", in: " + str(self.in_nodes) + ", out: " + str(self.out_nodes) + ", bias: " + str(self.bias)
+        return "||n:" + str(self.number) + ", in: " + str(self.in_nodes) + \
+               ", out: " + str(self.out_nodes) + ", bias: " + str(self.bias)
 
     __repr__ = __str__
 
@@ -314,26 +262,6 @@ class NeuralNetwork:
     def __init__(self, genome):
         self.nodes = genome.nodes
         self.genome = genome
-        # seen_so_far = set()  # For O(1) access
-        # not_seen_yet = set(genome.nodes)
-        # self.genome = genome
-        # self.ordered_nodes = []  # Topologically sorted.
-        #
-        # # A bit slow. Think of faster way later.
-        # for _ in range(len(genome.nodes)):
-        #     remove_set = set()
-        #     for node in not_seen_yet:
-        #         if all(u in seen_so_far for u in genome.nodes[node].in_nodes):
-        #             seen_so_far.add(node)
-        #             # not_seen_yet.remove(node)
-        #             remove_set.add(node)
-        #             self.ordered_nodes.append(node)
-        #     not_seen_yet = not_seen_yet.difference(remove_set)
-        # if not_seen_yet:
-        #     print("baddddddddddd " + str(len(not_seen_yet)))
-        # if len(self.nodes) != len(self.ordered_nodes):
-        #     print("bad bad bad bad bad badbf adb adb adb ")
-
 
         # Topologically sorts the nodes in O(|V| + |E|) time.
 
@@ -349,12 +277,8 @@ class NeuralNetwork:
                 current_source_nodes.append(n)
             in_degree_list[n] = in_degree
 
-        # assert all(i in current_source_nodes for i in range(parameters.num_inputs))
-
         # Currently the input nodes are sources
-        # current_source_nodes = range(parameters.num_inputs)
         next_source_nodes = []
-        finished = set()
         while current_source_nodes:
             self.ordered_nodes += current_source_nodes
             for u in current_source_nodes:
@@ -364,9 +288,6 @@ class NeuralNetwork:
                         next_source_nodes.append(v)
             current_source_nodes = next_source_nodes
             next_source_nodes = []
-        # for i in in_degree_list:
-        #     if in_degree_list[i] != 0:
-        #         print("badddd" + str(in_degree_list[i]))
 
         if len(self.nodes) != len(self.ordered_nodes):
             with open("anomalies/bad_genome", 'wb') as output:
@@ -375,7 +296,6 @@ class NeuralNetwork:
             for n in self.nodes:
                 print(str(n) + ": " + "in: " + str(self.nodes[n].in_nodes) + " out: " + str(self.nodes[n].out_nodes))
             raise ValueError('Topological sort failed. ')
-        assert (all(len(self.genome.nodes[i].incoming_genes) == len(self.genome.nodes[i].in_nodes) for i in self.genome.nodes))
 
     def evaluate(self, input):
         if len(input) != parameters.num_inputs:
@@ -394,27 +314,6 @@ class NeuralNetwork:
         for o in range(parameters.num_inputs, parameters.num_inputs + parameters.num_outputs):
             outputs.append(self.nodes[o].value)
 
-        # for _ in range(2*len(self.ordered_nodes)):
-        #     for j in range(parameters.num_inputs, len(self.ordered_nodes)):
-        #         node = self.ordered_nodes[j]
-        #         total = 0
-        #         for gene in self.nodes[node].incoming_genes:
-        #             if gene.enable:
-        #                 total += gene.weight * self.nodes[gene.in_node].value
-        #         self.nodes[node].value = sigmoid(total)
-        #
-        # outputs2 = []
-        # for j in range(parameters.num_inputs, parameters.num_inputs + parameters.num_outputs):
-        #     outputs2.append(self.nodes[j].value)
-        #
-        # if not all(outputs2[i] == outputs[i] for i in range(len(outputs))):
-        #     print(outputs2)
-        #     print(outputs)
-        #     print(self.nodes)
-        #     with open("anomalies/weird_genome", 'wb') as output:
-        #         pickle.dump(self.genome, output, pickle.HIGHEST_PROTOCOL)
-        #
-        #     raise ValueError("Bad evaluation of network.")
         return outputs
 
 
@@ -430,6 +329,5 @@ class Species:
 
     def __str__(self):
         return "(" + str(len(self.representative.nodes)) + ", " + str(len(self.representative.genes)) + ") "
-
 
     __repr__ = __str__

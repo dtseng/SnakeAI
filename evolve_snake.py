@@ -3,7 +3,8 @@ import internal
 import pickle
 from medoids import k_medoids
 import numpy as np
-import silent_game
+import snake_game
+
 
 def crossover(genome1, genome2):
     """Implements the crossover functionality of the NEAT algorithm."""
@@ -43,24 +44,7 @@ def crossover(genome1, genome2):
             composite_nodes[n].incoming_genes.append(composite_genes[incoming_key])
         if n in genome1.nodes and n in genome2.nodes:
             composite_nodes[n].bias = np.random.choice([genome1.nodes[n], genome2.nodes[n]]).bias
-    # assert(all(len(composite_nodes[i].incoming_genes) == len(composite_nodes[i].in_nodes) for i in composite_nodes))
 
-
-    # print("--")
-    # print("genome1: " + str(genome1.nodes) + "fitness: " + str(genome1.fitness))
-    # print("genome2: " + str(genome2.nodes) + "fitness: " + str(genome2.fitness))
-    # print("genome3: " + str(composite_nodes))
-
-    for g in composite_genes:
-        if g != composite_genes[g].number:
-            print("ERROR -1")
-            with open("anomalies/bad_genome1", 'wb') as output:
-                pickle.dump(genome1, output, pickle.HIGHEST_PROTOCOL)
-            with open("anomalies/bad_genome2", 'wb') as output:
-                pickle.dump(genome2, output, pickle.HIGHEST_PROTOCOL)
-            with open("anomalies/bad_composite", 'wb') as output:
-                pickle.dump(composite_genes, output, pickle.HIGHEST_PROTOCOL)
-            raise ValueError('Mismatched genome number with dictionary. ')
     return internal.Genome(composite_nodes, composite_genes)
 
 
@@ -81,8 +65,6 @@ def delta(genome1, genome2):
     disjoint = 0
     sum_of_differences = 0
     N = min(len(g1), len(g2))
-    # if N < 20:
-        # N = 1
 
     for current in g1.union(g2):
         if current in g1 and current in g2:
@@ -98,7 +80,7 @@ def delta(genome1, genome2):
             else:
                 disjoint += 1
         else:
-            raise ValueError("Bad condition in detla function.")
+            raise ValueError("Bad condition in delta function.")
     return parameters.c1*excess/N + parameters.c2*disjoint/N + parameters.c3*sum_of_differences/N
 
 
@@ -115,9 +97,9 @@ def find_species(population, genome):
     return new_species
 
 
-def get_genome_fitness(genome):
+def run_genome_in_game(genome, display_graphics=False):
     nn = internal.NeuralNetwork(genome)
-    game = silent_game.Game(nn.evaluate)
+    game = snake_game.Game(nn.evaluate, display_graphics)
     game_time = 0
     while game_time < 10000 and game.get_continue_status():  # Run the game
         game.step()
@@ -130,13 +112,16 @@ def get_genome_fitness(genome):
 def evaluate_population(population):
     max_fitness = float("-inf")
     average_fitness = 0
+    best_genome = None
     for species in population:
         for genome in species.genomes:
-            current = get_genome_fitness(genome)
+            current = run_genome_in_game(genome)
             average_fitness += current
-            max_fitness = max(max_fitness, current)
+            if current > max_fitness:
+                max_fitness = current
+                best_genome = genome
     average_fitness /= parameters.population_size
-    return max_fitness, average_fitness
+    return max_fitness, average_fitness, best_genome
 
 
 def init_population():
@@ -217,17 +202,7 @@ def next_generation_population(population):
         if species.genomes:  # If the species still has something assigned to it.
             next_population.append(species)
     population = next_population
-    """
-    #============= Medoids
-    diameter, med = k_medoids(next_genomes, k=5, distance=delta, spawn=1, verbose=False)
-    next_population = []
-    for m in med:
-        sp = internal.Species()
-        sp.genomes = m.elements
-        next_population.append(sp)
 
-    population = next_population"""
-    #============
     # Update representatives for each genome
     for species in population:
         species.representative = np.random.choice(species.genomes)
@@ -237,23 +212,22 @@ def next_generation_population(population):
 def evolution():
     """Puts everything together to evolve the snake AI. """
     population = init_population()
+    best_fitness_overall = float("-inf")
+
+
     for gen_number in range(parameters.num_generations):
         print("=================Generation " + str(gen_number) + "===================")
-        best_fitness, average_fitness = evaluate_population(population)
+        best_fitness_population, average_fitness, best_genome = evaluate_population(population)
+        if best_fitness_population > best_fitness_overall:
+            best_fitness_overall = best_fitness_population
+            with open("genomes/generation " + str(gen_number) + " fitness " + str(best_genome.fitness), 'wb') as output:
+                pickle.dump(best_genome, output, pickle.HIGHEST_PROTOCOL)
         print("Number of species: " + str(len(population)))
-        for species in population:
-            s = sorted(species.genomes, key=lambda x: x.fitness, reverse=True)
-            # best = s[0]
-            # bf = best.fitness
-            # for genome in s:
-            #     print("(" + str(len(genome.nodes)) + ", " + str(len(genome.genes)) + ")" + ": " + str(genome.fitness) + " ")
-            # print(species, end='')
-        # print()
         print("Sizes: ", end='')
         for species in population:
             print(len(species.genomes), " ", end='')
         print()
-        print("Best fitness: " + str(best_fitness))
+        print("Best fitness: " + str(best_fitness_population))
         print("Average fitness: " + str(average_fitness))
         # print()
         internal.Genome.node_innovation_lookup = {}
@@ -261,5 +235,13 @@ def evolution():
         population = update_spawn_amounts(population)
         population = next_generation_population(population)
 
-np.random.seed(20)
-evolution()
+
+def show_genome_capabilities(filename):
+    with open(filename, 'rb') as file:
+        genome = pickle.load(file)
+    fitness = run_genome_in_game(genome, display_graphics=True)
+    print("fitness: " + str(fitness))
+
+np.random.seed(20)  # For debugging purposes
+# evolution()
+show_genome_capabilities("genomes/generation 0 fitness 24.5")
