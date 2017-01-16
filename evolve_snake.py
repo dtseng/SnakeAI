@@ -57,7 +57,7 @@ def delta(genome1, genome2):
     excess = 0
     disjoint = 0
     sum_of_differences = 0
-    N = min(len(g1), len(g2))
+    N = max(len(g1), len(g2))
 
     for g in g1:
         if g in g2:
