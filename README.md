@@ -1,7 +1,7 @@
 # SnakeAI
 This is an agent trained to play Snake using my implementation of NEAT (Neuroevolution of Augmenting Topologies), an algorithm described in Dr. Stanley's paper [(here)](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf). NEAT is a type of neuroevolution that aims to evolve both the weights and structure of the player's neural network over the course of many generations. The player gradually develops its own strategies to increase its fitness.
 
-Here is an example progression of the player's strategy using **evolve_snake.py**:
+Here is an example progression of the player's strategy:
 
 
 
