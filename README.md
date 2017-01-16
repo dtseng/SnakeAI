@@ -10,9 +10,11 @@ Here is an example progression of the player's strategy using **evolve_snake.py*
 ![](https://zippy.gfycat.com/FondDangerousGonolek.gif)
 
 **Generation 100:**
+
 ![](https://zippy.gfycat.com/PhonyAgedAmericanavocet.gif)
 
 **Generation 200:**
+
 ![](https://zippy.gfycat.com/AnchoredRectangularFerret.gif)
 
 
