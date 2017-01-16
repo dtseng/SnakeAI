@@ -8,21 +8,20 @@ import snake_game
 
 def crossover(genome1, genome2):
     """Implements the crossover functionality of the NEAT algorithm."""
-    if np.random.rand() < 0.5:
-        temp = genome1
-        genome1 = genome2
-        genome2 = temp
+    if np.random.rand() < 0.5:  # Increase randomness
+        genome1, genome2 = genome2, genome1
 
     if genome2.fitness > genome1.fitness:
-        temp = genome1
-        genome1 = genome2
-        genome2 = temp
+        genome1, genome2, = genome2, genome1
 
     genes1 = genome1.genes
     genes2 = genome2.genes
     composite_genes = {}
     composite_nodes = {}
 
+    assert genome1.fitness >= genome2.fitness
+
+    # Composite genome has the same connections as the more fit genome
     for g in genes1:
         if g not in genes2:
             composite_genes[g] = genes1[g].copy()
@@ -32,8 +31,10 @@ def crossover(genome1, genome2):
                             np.random.rand() < parameters.p_enable_if_both_parents_disabled:
                 composite_genes[g].enable = True
 
+    # Composite genome has the same nodes as the more fit genome
     for n in genome1.nodes:
         composite_nodes[n] = genome1.nodes[n].copy()
+        composite_nodes[n].incoming_genes = []
         for incoming in genome1.nodes[n].incoming_genes:
             incoming_key = incoming.number
             composite_nodes[n].incoming_genes.append(composite_genes[incoming_key])
@@ -42,40 +43,34 @@ def crossover(genome1, genome2):
 
     return internal.Genome(composite_nodes, composite_genes)
 
-def get_dict_value(val, dict):
-    try:
-        return dict[val]
-    except KeyError:
-        return None
 
 def delta(genome1, genome2):
     """This is the delta function used to determine the similarity between two
     genomes. The higher the result, the more dissimilar the two genomes are. """
+    if max(genome2.genes.keys()) > max(genome1.genes.keys()):
+        genome1, genome2 = genome2, genome1
+    assert (max(genome1.genes.keys()) >= max(genome2.genes.keys()))
+
     g1 = set(genome1.genes.keys())
     g2 = set(genome2.genes.keys())
-    max1 = max(g1)
-    max2 = max(g2)
-
+    excess_cutoff = max(g2)
     excess = 0
     disjoint = 0
     sum_of_differences = 0
     N = min(len(g1), len(g2))
 
-    for current in g1.union(g2):
-        if current in g1 and current in g2:
-            sum_of_differences += abs(genome1.genes[current].weight - genome2.genes[current].weight)
-        elif current in g1 and current not in g2:
-            if current > max2:
-                excess += 1
-            else:
-                disjoint += 1
-        elif current in g2 and current not in g1:
-            if current > max1:
-                excess += 1
-            else:
-                disjoint += 1
+    for g in g1:
+        if g in g2:
+            sum_of_differences += abs(genome1.genes[g].weight - genome2.genes[g].weight)
         else:
-            raise ValueError("Bad condition in delta function.")
+            if g > excess_cutoff:
+                excess += 1
+            else:
+                disjoint += 1
+    for g in g2:
+        if g not in g1:
+            disjoint += 1
+
     return parameters.c1 * excess / N + parameters.c2 * disjoint / N + parameters.c3 * sum_of_differences / N
 
 def find_species(population, genome):
@@ -204,8 +199,8 @@ def evolution():
     """Puts everything together to evolve the snake AI. """
     population = init_population()
     best_fitness_overall = float("-inf")
-
     for gen_number in range(parameters.num_generations):
+        total_size_population = 0
         print("=================Generation " + str(gen_number) + "===================")
         best_fitness_population, average_fitness, best_genome = evaluate_population(population)
         if best_fitness_population > best_fitness_overall:
@@ -217,7 +212,9 @@ def evolution():
         print("Sizes: ", end='')
         for species in population:
             print(len(species.genomes), " ", end='')
+            total_size_population += len(species.genomes)
         print()
+        print("Total size: " + str(total_size_population))
         print("Best fitness: " + str(best_fitness_population))
         print("Average fitness: " + str(average_fitness))
         # print()
@@ -235,6 +232,6 @@ def test_genome_in_game(filename):
     print("fitness: " + str(fitness))
 
 np.random.seed(20)  # For debugging purposes
-# evolution()
-test_genome_in_game("samples2/generation 203 fitness 376.0")
+evolution()
+# test_genome_in_game("samples2/generation 203 fitness 376.0")
 # show_genome_capabilities("genomes/generation 78 fitness 92.5")

@@ -21,6 +21,11 @@ del_link_rate = 0.5
 new_node_rate = 0.2
 del_node_rate = 0.2
 
+# Computing delta for speciation
+delta_disjoint = 1.0
+delta_weight = 0.5
+delta_threshold = 3
+
 
 # During crossover, probability of re-enabling gene if both parents are disabled.
 p_enable_if_both_parents_disabled = 0.25
