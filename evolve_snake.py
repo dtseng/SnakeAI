@@ -223,6 +223,7 @@ def evolution():
         population = update_spawn_amounts(population)
         population = next_generation_population(population)
 
+
 def test_genome_in_game(filename):
     """Loads the genome from file, and displays the snake AI as played by the
     genome. """
